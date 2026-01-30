@@ -107,3 +107,20 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
         }
 
     return json.loads(match.group(0))
+
+
+def analyze_xray_image(image_bytes: bytes, language="en"):
+    """Backward-compatible wrapper used by the HTTP handler.
+
+    Keeps the original core function name `analyze_xray` while exposing
+    the `analyze_xray_image` name expected by `app.main`.
+    """
+    return analyze_xray(image_bytes=image_bytes, language=language)
+
+
+def analyze_text_report(report_text: str, language="en"):
+    """Backward-compatible wrapper for analyzing report text.
+
+    Delegates to `analyze_xray` with the `report_text` argument.
+    """
+    return analyze_xray(report_text=report_text, language=language)
