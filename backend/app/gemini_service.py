@@ -5,31 +5,34 @@ import io
 from google import genai
 from . import config
 
-# Initialize client lazily inside `analyze_xray` to avoid importing
-# and creating a client at module import time (which fails if env not set).
 
 def build_prompt(language="en", is_text_report=False):
     if language == "hi":
         language_rule = (
             "Respond only in simple, everyday Hindi. "
-            "Use simple medical or technical terms and tell possible medical conditions."+ # noqa: E501
-            "Use language a common person can understand."
+            "Medical terms ko simple shabdon me samjhao. "
+            "Aam aadmi ko samajh aaye aisi bhasha ka use karo."
         )
     else:
         language_rule = (
             "Respond only in simple English. "
-            "Use simple medical or technical terms and tell possible medical conditions. "+ # noqa: E501
-            "Use easy, clear language."
+            "Explain medical terms in easy, everyday language. "
+            "Use words a non-medical person can understand."
         )
 
     if is_text_report:
         task_description = (
-            "Extract visible observations (findings) and possible medical conditions from the provided X-ray report text. "+ # noqa: E501
-            "Your output should summarize the key findings and potential diagnoses mentioned in the text."
+            "Read the provided X-ray report text and summarize what is mentioned. "
+            "Explain the visible findings, commonly associated conditions, "
+            "and possible symptoms in simple language."
         )
         source_type = "text_report"
     else:
-        task_description = "Describe visible observations from the X-ray image and name possible medical conditions."
+        task_description = (
+            "Look at the X-ray image and describe what is visibly seen. "
+            "Explain what such findings are commonly associated with and "
+            "what symptoms people with similar findings may experience."
+        )
         source_type = "image"
 
     return f"""
@@ -42,19 +45,34 @@ LANGUAGE RULE:
 {language_rule}
 
 STRICT RULES:
-- Educational use only
-- Do NOT suggest treatment
-- Do NOT predict outcomes
-- Neutral and calm tone
+- Educational explanation only
+- DO NOT diagnose the patient
+- DO NOT confirm any disease
+- DO NOT suggest treatment or medication
+- DO NOT predict outcomes
+- Use phrases like:
+  - "may be associated with"
+  - "people with similar findings sometimes experience"
+- Keep tone calm, neutral, and reassuring
+- Avoid scary or absolute language
 
 OUTPUT JSON ONLY:
 {{
   "xray_type": "chest | limb | dental | spine | unknown",
   "source": "{source_type}",
-  "findings": ["observation 1", "observation 2"],
+  "findings": [
+    "Simple description of what is visible in the image or report"
+  ],
+  "possible_conditions": [
+    "Common condition this finding may be associated with (non-confirming)"
+  ],
+  "possible_symptoms": [
+    "Common symptom in simple everyday words"
+  ],
   "confidence_score": 0.0
 }}
 """
+    
 
 def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="en"):
     contents = None
@@ -65,21 +83,23 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
         prompt = build_prompt(language, is_text_report=True)
         contents = [prompt, report_text]
         source_type_for_error = "text_report"
+
     elif image_bytes is not None:
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         prompt = build_prompt(language, is_text_report=False)
         contents = [prompt, image]
         source_type_for_error = "image"
+
     else:
         return {
             "xray_type": "unknown",
             "source": "unknown",
-            "findings": ["No image bytes or report text provided"],
+            "findings": ["No image or report provided"],
+            "possible_conditions": [],
+            "possible_symptoms": [],
             "confidence_score": 0.0
         }
 
-    # Create the genai client using the configured API key. Do this lazily
-    # so importing this module does not require the env var to be set.
     api_key = config.get_gemini_api_key()
     if not api_key:
         raise ValueError("GEMINI_API_KEY not set")
@@ -91,7 +111,7 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
         contents=contents,
         config={
             "temperature": 0.1,
-            "max_output_tokens": 512
+            "max_output_tokens": 600
         }
     )
 
@@ -102,7 +122,9 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
         return {
             "xray_type": "unknown",
             "source": source_type_for_error,
-            "findings": ["Unable to generate interpretation"],
+            "findings": ["Unable to generate a clear explanation"],
+            "possible_conditions": [],
+            "possible_symptoms": [],
             "confidence_score": 0.0
         }
 
@@ -110,17 +132,10 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
 
 
 def analyze_xray_image(image_bytes: bytes, language="en"):
-    """Backward-compatible wrapper used by the HTTP handler.
-
-    Keeps the original core function name `analyze_xray` while exposing
-    the `analyze_xray_image` name expected by `app.main`.
-    """
+    """Wrapper for image-based X-ray analysis"""
     return analyze_xray(image_bytes=image_bytes, language=language)
 
 
 def analyze_text_report(report_text: str, language="en"):
-    """Backward-compatible wrapper for analyzing report text.
-
-    Delegates to `analyze_xray` with the `report_text` argument.
-    """
+    """Wrapper for text-report-based X-ray analysis"""
     return analyze_xray(report_text=report_text, language=language)
