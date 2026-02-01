@@ -51,30 +51,36 @@ STRICT RULES:
 - DO NOT suggest treatment or medication
 - DO NOT predict outcomes
 - Use phrases like:
-  - "may be associated with"
-  - "people with similar findings sometimes experience"
+    - "may be associated with"
+    - "people with similar findings sometimes experience"
 - Keep tone calm, neutral, and reassuring
 - Avoid scary or absolute language
 
-OUTPUT JSON ONLY:
+OUTPUT FORMAT:
+- Return a SINGLE valid JSON object
+- DO NOT include code fences, markdown, backticks, or extra text
+- DO NOT include comments or explanations outside JSON
+- Keys must match exactly as shown below
+- Each list must contain at least 2 items (no empty lists)
+
 {{
-  "xray_type": "chest | limb | dental | spine | unknown",
-  "source": "{source_type}",
-  "findings": [
-    "Simple description of what is visible in the image or report"
-  ],
-  "possible_conditions": [
-    "Common condition this finding may be associated with (non-confirming)"
-  ],
-  "possible_symptoms": [
-    "Common symptom in simple everyday words"
-  ],
-  "confidence_score": 0.0
+    "xray_type": "chest | limb | dental | spine | unknown",
+    "source": "{source_type}",
+    "findings": [
+        "Simple description of what is visible in the image or report"
+    ],
+    "possible_conditions": [
+        "Common condition this finding may be associated with (non-confirming)"
+    ],
+    "possible_symptoms": [
+        "Common symptom in simple everyday words"
+    ],
+    "confidence_score": 0.0
 }}
 """
-    
 
-def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="en"):
+
+def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="en", model_name: str | None = None):
     contents = None
     prompt = None
     source_type_for_error = "unknown"
@@ -106,36 +112,80 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
 
     client = genai.Client(api_key=api_key)
 
+    # Choose model if not explicitly provided
+    if model_name is None:
+        if image_bytes is not None:
+            model_name = config.IMAGE_MODEL_NAME
+        else:
+            model_name = config.TEXT_MODEL_NAME
+
     response = client.models.generate_content(
-        model=config.MODEL_NAME,
+        model=model_name,
         contents=contents,
         config={
-            "temperature": 0.1,
-            "max_output_tokens": 600
+            "temperature": 0.0,
+            "max_output_tokens": 800
         }
     )
 
     raw_text = (response.text or "").strip()
 
-    match = re.search(r"\{[\s\S]*\}", raw_text)
-    if not match:
-        return {
-            "xray_type": "unknown",
-            "source": source_type_for_error,
-            "findings": ["Unable to generate a clear explanation"],
-            "possible_conditions": [],
-            "possible_symptoms": [],
-            "confidence_score": 0.0
-        }
+    def _extract_json(text: str):
+        s = text.strip()
+        if s.startswith("```"):
+            end_idx = s.find("```", 3)
+            if end_idx != -1:
+                s = s[3:end_idx]
+                if s.lower().startswith("json\n"):
+                    s = s.split("\n", 1)[1]
+                s = s.strip()
+        start = s.find("{")
+        if start == -1:
+            try:
+                return json.loads(s)
+            except Exception:
+                return None
+        depth = 0
+        end = None
+        for i, ch in enumerate(s[start:], start=start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+        if end is not None:
+            candidate = s[start:end]
+            try:
+                return json.loads(candidate)
+            except Exception:
+                return None
+        try:
+            return json.loads(s)
+        except Exception:
+            return None
 
-    return json.loads(match.group(0))
+    parsed = _extract_json(raw_text)
+    if parsed is not None:
+        return parsed
+
+    summary = raw_text[:300].replace("\n", " ").strip() if raw_text else "Unable to generate a clear explanation"
+    return {
+        "xray_type": "unknown",
+        "source": source_type_for_error,
+        "findings": [summary or "Unable to generate a clear explanation"],
+        "possible_conditions": [],
+        "possible_symptoms": [],
+        "confidence_score": 0.0
+    }
 
 
 def analyze_xray_image(image_bytes: bytes, language="en"):
     """Wrapper for image-based X-ray analysis"""
-    return analyze_xray(image_bytes=image_bytes, language=language)
+    return analyze_xray(image_bytes=image_bytes, language=language, model_name=config.IMAGE_MODEL_NAME)
 
 
 def analyze_text_report(report_text: str, language="en"):
     """Wrapper for text-report-based X-ray analysis"""
-    return analyze_xray(report_text=report_text, language=language)
+    return analyze_xray(report_text=report_text, language=language, model_name=config.TEXT_MODEL_NAME)
