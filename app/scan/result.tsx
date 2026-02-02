@@ -47,66 +47,90 @@ export default function ScanResult() {
         <Text style={styles.timestamp}>
           {new Date(scan.createdAt).toLocaleDateString()} • {new Date(scan.createdAt).toLocaleTimeString()}
         </Text>
+        {!!insights.xray_type && (
+          <>
+            <Spacer size={8} />
+            <Text style={styles.metaText}>Type: {insights.xray_type} {typeof insights.confidence_score === 'number' ? `• Confidence ${(insights.confidence_score * 100).toFixed(0)}%` : ''}</Text>
+          </>
+        )}
       </View>
 
       <Spacer size={32} />
 
-      <View style={styles.sectionHeader}>
-        <Ionicons name="reader-outline" size={24} color={theme.colors.primary} />
-        <Text style={styles.sectionTitle}>Summary</Text>
-      </View>
-      <Spacer size={12} />
-      <Card elevated>
-        <Text style={styles.bodyText}>{insights.summary}</Text>
-      </Card>
-
-      <Spacer size={32} />
-
-      <View style={styles.sectionHeader}>
-        <Ionicons name="clipboard-outline" size={24} color={theme.colors.secondary} />
-        <Text style={styles.sectionTitle}>Recommendations</Text>
-      </View>
-      <Spacer size={12} />
-      <Card elevated>
-        {insights.recommendations.map((r, idx) => (
-          <View key={idx}>
-            {idx > 0 && <Spacer size={12} />}
-            <View style={styles.recommendationItem}>
-              <View style={styles.bulletPoint}>
-                <Ionicons name="checkmark-circle" size={20} color={theme.colors.secondary} />
-              </View>
-              <Text style={styles.bodyText}>{r}</Text>
-            </View>
+      {insights.findings?.length ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="reader-outline" size={24} color={theme.colors.primary} />
+            <Text style={styles.sectionTitle}>Findings</Text>
           </View>
-        ))}
-      </Card>
+          <Spacer size={12} />
+          <Card elevated>
+            {insights.findings.map((item, idx) => (
+              <View key={`finding-${idx}`} style={styles.listItem}>
+                <View style={styles.bulletPoint}>
+                  <Ionicons name="ellipse" size={8} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.bodyText}>{item}</Text>
+              </View>
+            ))}
+          </Card>
+        </>
+      ) : insights.summary ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="reader-outline" size={24} color={theme.colors.primary} />
+            <Text style={styles.sectionTitle}>Summary</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated>
+            <Text style={styles.bodyText}>{insights.summary}</Text>
+          </Card>
+        </>
+      ) : null}
 
       <Spacer size={32} />
 
-      <View style={styles.sectionHeader}>
-        <Ionicons name="book-outline" size={24} color={theme.colors.info} />
-        <Text style={styles.sectionTitle}>Medical Terms Simplified</Text>
-      </View>
-      <Spacer size={12} />
-      {insights.laymanTerms?.map((t, idx) => (
-        <View key={idx}>
-          {idx > 0 && <Spacer size={12} />}
+      {insights.possible_conditions?.length ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="clipboard-outline" size={24} color={theme.colors.secondary} />
+            <Text style={styles.sectionTitle}>Possible Conditions</Text>
+          </View>
+          <Spacer size={12} />
           <Card elevated>
-            <View style={styles.termCard}>
-              <View style={styles.termHeader}>
-                <View style={styles.termBadge}>
-                  <Ionicons name="school-outline" size={16} color={theme.colors.primary} />
+            {insights.possible_conditions.map((r, idx) => (
+              <View key={`cond-${idx}`} style={styles.listItem}>
+                <View style={styles.bulletPoint}>
+                  <Ionicons name="checkmark-circle" size={20} color={theme.colors.secondary} />
                 </View>
-                <Text style={styles.termTitle}>{t.term}</Text>
+                <Text style={styles.bodyText}>{r}</Text>
               </View>
-              <Spacer size={12} />
-              <View style={styles.termDivider} />
-              <Spacer size={12} />
-              <Text style={styles.termExplanation}>{t.plain}</Text>
-            </View>
+            ))}
           </Card>
-        </View>
-      ))}
+        </>
+      ) : null}
+
+      <Spacer size={32} />
+
+      {insights.possible_symptoms?.length ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="medkit-outline" size={24} color={theme.colors.info} />
+            <Text style={styles.sectionTitle}>Possible Symptoms</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated>
+            {insights.possible_symptoms.map((t, idx) => (
+              <View key={`sym-${idx}`} style={styles.listItem}>
+                <View style={styles.bulletPoint}>
+                  <Ionicons name="heart-outline" size={18} color={theme.colors.info} />
+                </View>
+                <Text style={styles.bodyText}>{t}</Text>
+              </View>
+            ))}
+          </Card>
+        </>
+      ) : null}
 
       <Spacer size={40} />
 
@@ -173,13 +197,14 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base, 
     lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
   },
-  recommendationItem: {
+  listItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: theme.spacing.sm,
+    paddingVertical: 6,
   },
   bulletPoint: {
-    marginTop: 2,
+    marginTop: 6,
   },
   termCard: {
     width: '100%',
@@ -230,5 +255,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base,
     color: theme.colors.text.secondary,
     textAlign: 'center',
+  },
+  metaText: {
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
   },
 });

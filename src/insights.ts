@@ -1,42 +1,71 @@
-import { Image } from 'react-native';
+// Insights returned from backend (FASTAPI)
+export type ApiInsights = {
+  xray_type: string;
+  source: string;
+  findings: string[];
+  possible_conditions: string[];
+  possible_symptoms: string[];
+  confidence_score: number;
+};
 
-// Placeholder local insights generator.
-// Replace with backend/ML inference for real analysis.
-export async function generateInsightsFromImage(uri: string) {
-  // Lightweight heuristic: read image dimensions (metadata) as a stand-in.
-  const size = await getImageSize(uri);
-  const title = 'Simplified Health Insights';
-  const summary =
-    'We analyzed your image to highlight key areas and simplified common medical terms into everyday language.';
-  const recommendations = [
-    'Consult a physician for a professional diagnosis.',
-    'Keep previous reports handy for comparison.',
-    'Note any symptoms and duration to assist doctors.',
-  ];
+// Unified type the app stores. Old fields are optional for backward compatibility.
+export type Insights = ApiInsights & {
+  title: string;
+  summary?: string;
+  recommendations?: string[];
+  laymanTerms?: { term: string; plain: string }[];
+};
 
-  const laymanTerms = [
-    { term: 'Opacity', plain: 'Cloudy area' },
-    { term: 'Lesion', plain: 'Abnormal spot' },
-    { term: 'Effusion', plain: 'Fluid build-up' },
-    { term: 'Fracture', plain: 'Bone crack/break' },
-    { term: 'Calcification', plain: 'Mineral deposits' },
-  ];
+const BACKEND_URL = 'https://healthfutureinsights.onrender.com';
 
-  return {
-    title,
-    summary:
-      summary + ` (Image approx. ${size.width}×${size.height}. Explanations are simplified for clarity.)`,
-    recommendations,
-    laymanTerms,
-  };
-}
+// Call FASTAPI to analyze the image. Falls back with a friendly error.
+export async function generateInsightsFromImage(uri: string): Promise<Insights> {
+  try {
+    const form = new FormData();
+    // React Native recommended way: pass { uri, name, type }
+    const filename = 'scan.jpg';
+    const mime = uri?.toLowerCase()?.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    form.append('file', { uri, name: filename, type: mime } as any);
+    form.append('language', 'en');
 
-function getImageSize(uri: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    Image.getSize(
-      uri,
-      (w, h) => resolve({ width: w, height: h }),
-      () => resolve({ width: 0, height: 0 })
-    );
-  });
+    // Add timeout with AbortController to avoid hanging if server cold-starts
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    const res = await fetch(`${BACKEND_URL}/analyze-image`, {
+      method: 'POST',
+      body: form,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `Server error ${res.status}`);
+    }
+
+    const data = (await res.json()) as ApiInsights;
+    // Basic validation/sanitization
+    const safeList = (v: any) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
+    const insights: Insights = {
+      title: 'Simplified Health Insights',
+      xray_type: String(data?.xray_type || 'unknown'),
+      source: String(data?.source || 'image'),
+      findings: safeList(data?.findings),
+      possible_conditions: safeList(data?.possible_conditions),
+      possible_symptoms: safeList(data?.possible_symptoms),
+      confidence_score: typeof data?.confidence_score === 'number' ? data.confidence_score : 0,
+    };
+    return insights;
+  } catch (e: any) {
+    // Graceful fallback so UI remains usable
+    return {
+      title: 'Simplified Health Insights',
+      xray_type: 'unknown',
+      source: 'image',
+      findings: [e?.message ? `Analysis failed: ${e.message}` : 'Unable to analyze the image'],
+      possible_conditions: [],
+      possible_symptoms: [],
+      confidence_score: 0,
+    };
+  }
 }

@@ -16,8 +16,16 @@ export type ScanItem = {
   createdAt: number;
   insights: {
     title: string;
-    summary: string;
-    recommendations: string[];
+    // New API fields
+    xray_type?: string;
+    source?: string;
+    findings?: string[];
+    possible_conditions?: string[];
+    possible_symptoms?: string[];
+    confidence_score?: number;
+    // Legacy fields (optional)
+    summary?: string;
+    recommendations?: string[];
     laymanTerms?: { term: string; plain: string }[];
   };
 };
