@@ -19,19 +19,25 @@ export type Insights = ApiInsights & {
 const BACKEND_URL = 'https://healthfutureinsights.onrender.com';
 
 // Call FASTAPI to analyze the image. Falls back with a friendly error.
-export async function generateInsightsFromImage(uri: string): Promise<Insights> {
+let currentLanguage: 'en' | 'hi' = 'en';
+export function setInsightsLanguage(lang: 'en' | 'hi') {
+  currentLanguage = lang;
+}
+
+export async function generateInsightsFromImage(uri: string, language?: 'en' | 'hi'): Promise<Insights> {
   try {
     const form = new FormData();
     // React Native recommended way: pass { uri, name, type }
     const filename = 'scan.jpg';
     const mime = uri?.toLowerCase()?.endsWith('.png') ? 'image/png' : 'image/jpeg';
     form.append('file', { uri, name: filename, type: mime } as any);
-    form.append('language', 'en');
+    form.append('language', language ?? currentLanguage);
 
     // Add timeout with AbortController to avoid hanging if server cold-starts
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
-    const res = await fetch(`${BACKEND_URL}/analyze-image`, {
+    const lang = (language ?? currentLanguage) || 'en';
+    const res = await fetch(`${BACKEND_URL}/analyze-image?language=${encodeURIComponent(lang)}`, {
       method: 'POST',
       body: form,
       signal: controller.signal,
@@ -68,4 +74,12 @@ export async function generateInsightsFromImage(uri: string): Promise<Insights> 
       confidence_score: 0,
     };
   }
+}
+
+// Explicit helper with language to avoid stale type issues in some toolchains
+export async function generateInsightsFromImageWithLanguage(
+  uri: string,
+  language: 'en' | 'hi'
+): Promise<Insights> {
+  return generateInsightsFromImage(uri, language);
 }

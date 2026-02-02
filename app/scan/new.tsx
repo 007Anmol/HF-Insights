@@ -9,7 +9,7 @@ import { Spacer } from '../../src/components/Spacer';
 import { InfoBox } from '../../src/components/InfoBox';
 import { LoadingOverlay } from '../../src/components/LoadingOverlay';
 import { useApp } from '../../src/context/AppContext';
-import { generateInsightsFromImage } from '../../src/insights';
+import { generateInsightsFromImage, setInsightsLanguage } from '../../src/insights';
 import { supabase } from '../../src/supabase';
 import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ export default function NewScan() {
   const { addScan } = useApp();
   const [uri, setUri] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [language, setLanguage] = useState<'en' | 'hi'>('en');
 
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -60,6 +61,7 @@ export default function NewScan() {
     
     setIsAnalyzing(true);
     try {
+      setInsightsLanguage(language);
       const insights = await generateInsightsFromImage(uri);
       const uploaded = await uploadToStorage(uri);
       const id = Date.now().toString();
@@ -179,6 +181,39 @@ export default function NewScan() {
           </View>
         </View>
 
+        <Spacer size={16} />
+
+        <Card elevated>
+          <View style={styles.languageContainer}>
+            <View style={styles.languageHeader}>
+              <Ionicons name="language-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.languageLabel}>Language</Text>
+            </View>
+            <Spacer size={8} />
+            <View style={styles.langToggle}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="English"
+                  variant={language === 'en' ? 'primary' : 'outline'}
+                  size="small"
+                  onPress={() => setLanguage('en')}
+                  fullWidth
+                />
+              </View>
+              <Spacer size={8} />
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Hindi"
+                  variant={language === 'hi' ? 'primary' : 'outline'}
+                  size="small"
+                  onPress={() => setLanguage('hi')}
+                  fullWidth
+                />
+              </View>
+            </View>
+          </View>
+        </Card>
+
         <Spacer size={32} />
 
         <InfoBox 
@@ -294,6 +329,30 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
+  },
+  languageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+  },
+  languageContainer: {
+    padding: theme.spacing.md,
+  },
+  languageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  languageLabel: {
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
+  langToggle: {
+    flexDirection: 'row',
+    gap: 8,
+    flex: 1,
   },
   featureItem: {
     flexDirection: 'row',
