@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from app import gemini_service
 from app import config
 from PyPDF2 import PdfReader
@@ -12,6 +14,23 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# 🔹 Render / Mobile CORS (OPEN for launch, restrict later)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],        # later: ["https://your-app-domain.com"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 🔹 Health check (used by Render + warm-up)
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+# ============================
+# IMAGE ANALYSIS
+# ============================
 @app.post("/analyze-image")
 async def analyze_image(
     file: UploadFile = File(...),
@@ -35,7 +54,9 @@ async def analyze_image(
             detail=str(e)
         )
 
-
+# ============================
+# PDF REPORT ANALYSIS
+# ============================
 @app.post("/analyze-report-pdf")
 async def analyze_report_pdf(
     file: UploadFile = File(...),
@@ -56,11 +77,13 @@ async def analyze_report_pdf(
     try:
         pdf_bytes = await file.read()
         reader = PdfReader(io.BytesIO(pdf_bytes))
+
         text_parts = []
         for page in reader.pages:
             extracted = page.extract_text() or ""
             if extracted:
                 text_parts.append(extracted)
+
         report_text = "\n\n".join(text_parts).strip()
 
         if not report_text:
@@ -73,6 +96,7 @@ async def analyze_report_pdf(
             report_text=report_text,
             language=language
         )
+
     except HTTPException:
         raise
     except Exception as e:
