@@ -6,6 +6,7 @@ import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
 import { Spacer } from '../../src/components/Spacer';
 import { Ionicons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 import { theme } from '../../src/theme';
 
 export default function Dashboard() {
@@ -20,9 +21,27 @@ export default function Dashboard() {
             <Text style={styles.greeting}>Welcome back,</Text>
             <Text style={styles.userName}>{user ? user.name : 'Guest'}</Text>
           </View>
-          <View style={styles.avatarContainer}>
+          <Pressable
+            style={styles.avatarContainer}
+            onPress={() => {
+              if (user) {
+                // Show minimal profile info: name and email
+                // Using Toast to avoid adding a new screen
+                // Name
+                // Email
+                // The app stores only name and email in profile
+                // and derives them from Supabase user metadata
+                // which matches the requested behavior.
+                Toast.show({
+                  type: 'info',
+                  text1: user.name,
+                  text2: user.email,
+                });
+              }
+            }}
+          >
             <Ionicons name="person" size={24} color={theme.colors.primary} />
-          </View>
+          </Pressable>
         </View>
         <Spacer size={24} />
         <Button 

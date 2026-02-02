@@ -61,9 +61,9 @@ export default function NewScan() {
     setIsAnalyzing(true);
     try {
       const insights = await generateInsightsFromImage(uri);
-      const uploadPath = await uploadToStorage(uri);
+      const uploaded = await uploadToStorage(uri);
       const id = Date.now().toString();
-      await addScan({ id, uri: uploadPath, createdAt: Date.now(), insights });
+      await addScan({ id, uri: uploaded.publicUrl, storagePath: uploaded.storagePath, createdAt: Date.now(), insights });
       Toast.show({ type: 'success', text1: 'Analysis complete!', text2: 'View your health insights' });
       router.replace({ pathname: '/scan/result', params: { id } });
     } catch (error: any) {
@@ -73,26 +73,31 @@ export default function NewScan() {
     }
   };
 
-  async function uploadToStorage(localUri: string): Promise<string> {
+  async function uploadToStorage(localUri: string): Promise<{ publicUrl: string; storagePath: string }> {
     if (!supabase) {
       console.warn('Supabase not available, using local URI');
-      return localUri;
+      return { publicUrl: localUri, storagePath: '' };
     }
     
     try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes.user?.id || 'anonymous';
       const filename = `scan-${Date.now()}.jpg`;
-      const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: 'base64' });
-      const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const { data, error } = await supabase.storage.from('scans').upload(filename, binary, {
-        contentType: 'image/jpeg',
-        upsert: true,
-      });
+      const storagePath = `${userId}/${filename}`;
+      // Preferred RN/Expo approach: upload Blob from fetch(localUri)
+      const fileBlob = await fetch(localUri).then(res => res.blob());
+      const { data, error } = await supabase.storage
+        .from('scans')
+        .upload(storagePath, fileBlob, {
+          contentType: fileBlob.type || 'image/jpeg',
+          upsert: true,
+        });
       if (error) throw error;
       const { data: pub } = supabase.storage.from('scans').getPublicUrl(data.path);
-      return pub.publicUrl;
+      return { publicUrl: pub.publicUrl, storagePath };
     } catch (e: any) {
       console.warn('Upload failed, using local URI:', e.message);
-      return localUri;
+      return { publicUrl: localUri, storagePath: '' };
     }
   }
 

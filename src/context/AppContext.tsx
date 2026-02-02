@@ -12,6 +12,7 @@ export type User = {
 export type ScanItem = {
   id: string;
   uri: string;
+  storagePath?: string;
   createdAt: number;
   insights: {
     title: string;
@@ -37,6 +38,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [scans, setScans] = useState<ScanItem[]>([]);
 
   useEffect(() => {
+    if (!supabase) return;
+    
     (async () => {
       const session = await supabase.auth.getSession();
       const user = session.data.session?.user;
@@ -57,11 +60,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchScans = async () => {
     try {
+      if (!supabase) return;
       const { data, error } = await supabase.from('scans').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const mapped: ScanItem[] = (data as DbScan[]).map(d => ({
         id: d.id,
         uri: d.image_url,
+        storagePath: d.storage_path,
         createdAt: new Date(d.created_at).getTime(),
         insights: d.insights,
       }));
@@ -80,11 +85,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addScan = async (s: ScanItem) => {
     try {
-      const { error } = await supabase.from('scans').insert({
+      if (!supabase) throw new Error('Supabase client not initialized');
+      // Try inserting with storage_path; if the column doesn't exist, fallback gracefully
+      let { error } = await supabase.from('scans').insert({
         image_url: s.uri,
+        storage_path: s.storagePath,
         insights: s.insights,
       });
-      if (error) throw error;
+      if (error) {
+        // Retry without storage_path
+        const retry = await supabase.from('scans').insert({
+          image_url: s.uri,
+          insights: s.insights,
+        });
+        error = retry.error ?? null;
+        if (error) throw error;
+      }
       await fetchScans();
       Toast.show({ type: 'success', text1: 'Scan saved', text2: 'Insights generated successfully.' });
     } catch (e: any) {
@@ -99,6 +115,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const removeScan = async (id: string) => {
     try {
+      const target = scans.find(s => s.id === id);
+      if (target?.storagePath && supabase) {
+        // remove from storage first (best-effort)
+        try {
+          await supabase.storage.from('scans').remove([target.storagePath]);
+        } catch {}
+      }
+      if (!supabase) throw new Error('Supabase client not initialized');
       await supabase.from('scans').delete().eq('id', id);
       await fetchScans();
     } catch {

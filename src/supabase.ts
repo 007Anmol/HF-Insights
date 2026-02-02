@@ -41,6 +41,7 @@ export type DbScan = {
   id: string;
   user_id: string;
   image_url: string;
+  storage_path?: string;
   created_at: string;
   insights: {
     title: string;
