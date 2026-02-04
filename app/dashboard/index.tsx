@@ -88,7 +88,14 @@ export default function Dashboard() {
                     <Text style={styles.viewButtonText}>View Insights</Text>
                     <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
                   </Pressable>
-                  <Pressable onPress={() => removeScan(item.id)}>
+                  <Pressable onPress={async () => {
+                    await removeScan(item.id);
+                    Toast.show({
+                      type: 'success',
+                      text1: 'Scan deleted',
+                      text2: 'The scan has been removed successfully.',
+                    });
+                  }}>
                     <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                   </Pressable>
                 </View>

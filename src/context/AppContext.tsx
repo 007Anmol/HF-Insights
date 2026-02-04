@@ -138,6 +138,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const removeScan = async (id: string) => {
+    // Immediately update UI by removing from state
+    setScans(prev => prev.filter(s => s.id !== id));
+    
     try {
       const target = scans.find(s => s.id === id);
       if (target?.storagePath && supabase) {
@@ -147,14 +150,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch {}
       }
       if (!supabase) throw new Error('Supabase client not initialized');
-      await supabase.from('scans').delete().eq('id', id);
+      const { error } = await supabase.from('scans').delete().eq('id', id);
+      if (error) throw error;
+      
+      // Update local cache
+      const cached = await loadScans();
+      const updated = cached.filter(s => s.id !== id);
+      await saveScans(updated);
+      
+      // Refresh from server to ensure sync
       await fetchScans();
-    } catch {
-      setScans(prev => {
-        const next = prev.filter(s => s.id !== id);
-        saveScans(next);
-        return next;
-      });
+    } catch (e) {
+      // Ensure local storage is updated even if cloud deletion fails
+      const cached = await loadScans();
+      const updated = cached.filter(s => s.id !== id);
+      await saveScans(updated);
     }
   };
 
