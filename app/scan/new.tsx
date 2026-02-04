@@ -14,6 +14,7 @@ import { supabase } from '../../src/supabase';
 import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme';
+import Constants from 'expo-constants';
 
 export default function NewScan() {
   const router = useRouter();
@@ -58,16 +59,27 @@ export default function NewScan() {
       Toast.show({ type: 'error', text1: 'No image selected', text2: 'Please upload or capture an image first' });
       return;
     }
+    // Require user to be signed in for cloud sync
+    if (!supabase) {
+      Toast.show({ type: 'error', text1: 'Service unavailable', text2: 'Please try again later' });
+      return;
+    }
+    const { data: sessionRes } = await supabase.auth.getSession();
+    if (!sessionRes.session?.user) {
+      Toast.show({ type: 'info', text1: 'Sign in required', text2: 'Please log in to save scans to cloud' });
+      router.push('/auth/login');
+      return;
+    }
     
     setIsAnalyzing(true);
     try {
       setInsightsLanguage(language);
       const insights = await generateInsightsFromImage(uri);
       const uploaded = await uploadToStorage(uri);
-      const id = Date.now().toString();
-      await addScan({ id, uri: uploaded.publicUrl, storagePath: uploaded.storagePath, createdAt: Date.now(), insights });
+      const clientId = Date.now().toString();
+      const persistedId = await addScan({ id: clientId, uri: uploaded.publicUrl, storagePath: uploaded.storagePath, createdAt: Date.now(), insights });
       Toast.show({ type: 'success', text1: 'Analysis complete!', text2: 'View your health insights' });
-      router.replace({ pathname: '/scan/result', params: { id } });
+      router.replace({ pathname: '/scan/result', params: { id: persistedId } });
     } catch (error: any) {
       Toast.show({ type: 'error', text1: 'Analysis failed', text2: error.message });
     } finally {
@@ -80,25 +92,38 @@ export default function NewScan() {
       console.warn('Supabase not available, using local URI');
       return { publicUrl: localUri, storagePath: '' };
     }
-    
     try {
+      const { data: sessionRes } = await supabase.auth.getSession();
+      const token = sessionRes.session?.access_token;
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes.user?.id || 'anonymous';
-      const filename = `scan-${Date.now()}.jpg`;
+      const isPng = localUri.toLowerCase().endsWith('.png');
+      const mime = isPng ? 'image/png' : 'image/jpeg';
+      const filename = `scan-${Date.now()}.${isPng ? 'png' : 'jpg'}`;
       const storagePath = `${userId}/${filename}`;
-      // Preferred RN/Expo approach: upload Blob from fetch(localUri)
-      const fileBlob = await fetch(localUri).then(res => res.blob());
-      const { data, error } = await supabase.storage
-        .from('scans')
-        .upload(storagePath, fileBlob, {
-          contentType: fileBlob.type || 'image/jpeg',
-          upsert: true,
-        });
-      if (error) throw error;
-      const { data: pub } = supabase.storage.from('scans').getPublicUrl(data.path);
+
+      if (!token) throw new Error('Missing auth token');
+      const extra = (Constants?.expoConfig?.extra || {}) as any;
+      const SUPABASE_URL = extra?.supabaseUrl;
+      if (!SUPABASE_URL) throw new Error('Supabase URL missing in app.json');
+
+      // Upload directly via HTTP to avoid RN Blob issues
+      const endpoint = `${SUPABASE_URL}/storage/v1/object/scans/${encodeURI(storagePath)}`;
+      const result = await FileSystem.uploadAsync(endpoint, localUri, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-upsert': 'true',
+          'Content-Type': mime,
+        },
+        httpMethod: 'POST',
+      });
+      if (result.status < 200 || result.status >= 300) {
+        throw new Error(`Upload failed with status ${result.status}`);
+      }
+      const { data: pub } = supabase.storage.from('scans').getPublicUrl(storagePath);
       return { publicUrl: pub.publicUrl, storagePath };
     } catch (e: any) {
-      console.warn('Upload failed, using local URI:', e.message);
+      console.warn('Upload failed, using local URI:', e?.message || e);
       return { publicUrl: localUri, storagePath: '' };
     }
   }

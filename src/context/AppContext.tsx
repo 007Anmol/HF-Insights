@@ -34,7 +34,7 @@ type AppContextType = {
   user: User | null;
   setUser: (u: User | null) => void;
   scans: ScanItem[];
-  addScan: (s: ScanItem) => void;
+  addScan: (s: ScanItem) => Promise<string>;
   removeScan: (id: string) => void;
   clearScans: () => void;
 };
@@ -69,7 +69,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const fetchScans = async () => {
     try {
       if (!supabase) return;
-      const { data, error } = await supabase.from('scans').select('*').order('created_at', { ascending: false });
+      const userId = user?.id;
+      const query = supabase.from('scans').select('*').order('created_at', { ascending: false });
+      const { data, error } = userId ? await query.eq('user_id', userId) : await query;
       if (error) throw error;
       const mapped: ScanItem[] = (data as DbScan[]).map(d => ({
         id: d.id,
@@ -78,8 +80,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createdAt: new Date(d.created_at).getTime(),
         insights: d.insights,
       }));
-      setScans(mapped);
-      await saveScans(mapped);
+      // Merge with locally cached scans to preserve visibility of legacy/offline items
+      const cached = await loadScans();
+      const ids = new Set(mapped.map(m => m.id));
+      const merged = [...mapped, ...cached.filter(c => !ids.has(c.id))];
+      setScans(merged);
+      await saveScans(merged);
     } catch (e) {
       const cached = await loadScans();
       if (cached.length) setScans(cached);
@@ -91,26 +97,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await saveUser(u);
   };
 
-  const addScan = async (s: ScanItem) => {
+  const addScan = async (s: ScanItem): Promise<string> => {
     try {
       if (!supabase) throw new Error('Supabase client not initialized');
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id ?? null;
       // Try inserting with storage_path; if the column doesn't exist, fallback gracefully
-      let { error } = await supabase.from('scans').insert({
+      let { data: inserted, error } = await supabase.from('scans').insert({
+        user_id: userId,
         image_url: s.uri,
         storage_path: s.storagePath,
         insights: s.insights,
-      });
+      }).select('*').single();
       if (error) {
         // Retry without storage_path
         const retry = await supabase.from('scans').insert({
+          user_id: userId,
           image_url: s.uri,
           insights: s.insights,
-        });
+        }).select('*').single();
         error = retry.error ?? null;
+        inserted = retry.data ?? null;
         if (error) throw error;
       }
       await fetchScans();
       Toast.show({ type: 'success', text1: 'Scan saved', text2: 'Insights generated successfully.' });
+      if (inserted && (inserted as DbScan).id) {
+        return (inserted as DbScan).id;
+      }
+      return s.id;
     } catch (e: any) {
       setScans(prev => {
         const next = [s, ...prev];
@@ -118,6 +133,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return next;
       });
       Toast.show({ type: 'info', text1: 'Saved locally', text2: 'Will sync when online.' });
+      return s.id;
     }
   };
 
