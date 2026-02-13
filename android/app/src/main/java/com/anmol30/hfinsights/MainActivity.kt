@@ -1,4 +1,4 @@
-package com.healthfutureinsights.app
+package com.anmol30.hfinsights
 
 import android.os.Build
 import android.os.Bundle
