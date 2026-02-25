@@ -8,3 +8,5 @@ export { Card } from './Card';
 export { Spacer } from './Spacer';
 export { LoadingOverlay } from './LoadingOverlay';
 export { InfoBox } from './InfoBox';
+export { ToggleButton } from './ToggleButton';
+export { FormInput } from './FormInput';

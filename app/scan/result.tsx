@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../../src/context/AppContext';
 import { Card } from '../../src/components/Card';
 import { Button } from '../../src/components/Button';
@@ -37,38 +38,77 @@ export default function ScanResult() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
-      <View style={styles.headerSection}>
-        <View style={styles.iconBadge}>
-          <Ionicons name="document-text" size={32} color={theme.colors.primary} />
+      <LinearGradient
+        colors={['#F0F7FF', '#F8FAFC']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerSection}>
+          <LinearGradient
+            colors={['#DBEAFE', '#BFDBFE']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.iconBadge}
+          >
+            <Ionicons name="document-text" size={32} color={theme.colors.primary} />
+          </LinearGradient>
+          <Spacer size={20} />
+          <Text style={styles.title}>{insights.title}</Text>
+          <Spacer size={10} />
+          <View style={styles.metaRow}>
+            <View style={styles.metaBadge}>
+              <Ionicons name="calendar-outline" size={14} color={theme.colors.text.secondary} />
+              <Text style={styles.timestamp}>
+                {new Date(scan.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
+            <View style={styles.metaBadge}>
+              <Ionicons name="time-outline" size={14} color={theme.colors.text.secondary} />
+              <Text style={styles.timestamp}>
+                {new Date(scan.createdAt).toLocaleTimeString()}
+              </Text>
+            </View>
+          </View>
+          {!!insights.xray_type && (
+            <>
+              <Spacer size={12} />
+              <View style={styles.typeBadge}>
+                <Text style={styles.typeText}>{insights.xray_type}</Text>
+                {typeof insights.confidence_score === 'number' && (
+                  <View style={styles.confidenceBadge}>
+                    <Text style={styles.confidenceText}>
+                      {(insights.confidence_score * 100).toFixed(0)}% confidence
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
         </View>
-        <Spacer size={16} />
-        <Text style={styles.title}>{insights.title}</Text>
-        <Spacer size={8} />
-        <Text style={styles.timestamp}>
-          {new Date(scan.createdAt).toLocaleDateString()} • {new Date(scan.createdAt).toLocaleTimeString()}
-        </Text>
-        {!!insights.xray_type && (
-          <>
-            <Spacer size={8} />
-            <Text style={styles.metaText}>Type: {insights.xray_type} {typeof insights.confidence_score === 'number' ? `• Confidence ${(insights.confidence_score * 100).toFixed(0)}%` : ''}</Text>
-          </>
-        )}
-      </View>
+      </LinearGradient>
 
-      <Spacer size={32} />
+      <View style={styles.contentSection}>
 
       {insights.findings?.length ? (
         <>
           <View style={styles.sectionHeader}>
-            <Ionicons name="reader-outline" size={24} color={theme.colors.primary} />
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
+            </LinearGradient>
             <Text style={styles.sectionTitle}>Findings</Text>
           </View>
           <Spacer size={12} />
-          <Card elevated>
+          <Card elevated variant="gradient">
             {insights.findings.map((item, idx) => (
-              <View key={`finding-${idx}`} style={styles.listItem}>
+              <View key={`finding-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
-                  <Ionicons name="ellipse" size={8} color={theme.colors.primary} />
+                  <View style={styles.bulletDot} />
                 </View>
                 <Text style={styles.bodyText}>{item}</Text>
               </View>
@@ -78,30 +118,44 @@ export default function ScanResult() {
       ) : insights.summary ? (
         <>
           <View style={styles.sectionHeader}>
-            <Ionicons name="reader-outline" size={24} color={theme.colors.primary} />
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
+            </LinearGradient>
             <Text style={styles.sectionTitle}>Summary</Text>
           </View>
           <Spacer size={12} />
-          <Card elevated>
+          <Card elevated variant="gradient">
             <Text style={styles.bodyText}>{insights.summary}</Text>
           </Card>
         </>
       ) : null}
 
-      <Spacer size={32} />
+      <Spacer size={28} />
 
       {insights.possible_conditions?.length ? (
         <>
           <View style={styles.sectionHeader}>
-            <Ionicons name="clipboard-outline" size={24} color={theme.colors.secondary} />
+            <LinearGradient
+              colors={['#ECFDF5', '#D1FAE5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="clipboard-outline" size={20} color={theme.colors.secondary} />
+            </LinearGradient>
             <Text style={styles.sectionTitle}>Possible Conditions</Text>
           </View>
           <Spacer size={12} />
-          <Card elevated>
+          <Card elevated variant="gradient">
             {insights.possible_conditions.map((r, idx) => (
-              <View key={`cond-${idx}`} style={styles.listItem}>
+              <View key={`cond-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
-                  <Ionicons name="checkmark-circle" size={20} color={theme.colors.secondary} />
+                  <Ionicons name="checkmark-circle" size={18} color={theme.colors.secondary} />
                 </View>
                 <Text style={styles.bodyText}>{r}</Text>
               </View>
@@ -110,20 +164,27 @@ export default function ScanResult() {
         </>
       ) : null}
 
-      <Spacer size={32} />
+      <Spacer size={28} />
 
       {insights.possible_symptoms?.length ? (
         <>
           <View style={styles.sectionHeader}>
-            <Ionicons name="medkit-outline" size={24} color={theme.colors.info} />
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="medkit-outline" size={20} color={theme.colors.info} />
+            </LinearGradient>
             <Text style={styles.sectionTitle}>Possible Symptoms</Text>
           </View>
           <Spacer size={12} />
-          <Card elevated>
+          <Card elevated variant="gradient">
             {insights.possible_symptoms.map((t, idx) => (
-              <View key={`sym-${idx}`} style={styles.listItem}>
+              <View key={`sym-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
-                  <Ionicons name="heart-outline" size={18} color={theme.colors.info} />
+                  <Ionicons name="heart-outline" size={16} color={theme.colors.info} />
                 </View>
                 <Text style={styles.bodyText}>{t}</Text>
               </View>
@@ -148,94 +209,140 @@ export default function ScanResult() {
           fullWidth 
         />
       </View>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { 
-    backgroundColor: theme.colors.background.secondary,
+    backgroundColor: theme.colors.background.primary,
     flex: 1,
   },
   inner: { 
-    padding: theme.layout.screenPadding,
+    paddingBottom: theme.spacing['3xl'],
+  },
+  headerGradient: {
+    paddingTop: theme.spacing['2xl'],
+    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.layout.screenPadding,
   },
   headerSection: {
     alignItems: 'center',
   },
   iconBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: theme.borderRadius.xl,
-    backgroundColor: theme.colors.iconBackground.blue,
+    width: 80,
+    height: 80,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.md,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   title: { 
     color: theme.colors.text.primary, 
-    fontSize: theme.typography.fontSize['3xl'], 
+    fontSize: theme.typography.fontSize['2xl'], 
     fontWeight: theme.typography.fontWeight.bold,
     textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  metaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.borderRadius.md,
   },
   timestamp: {
-    color: theme.colors.text.tertiary,
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border.light,
+  },
+  typeText: {
+    color: theme.colors.text.primary,
     fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
+  confidenceBadge: {
+    backgroundColor: theme.colors.iconBackground.teal,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.borderRadius.sm,
+  },
+  confidenceText: {
+    color: theme.colors.secondary,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
+  contentSection: {
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingTop: theme.spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
   },
+  sectionIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionTitle: { 
     color: theme.colors.text.primary, 
-    fontSize: theme.typography.fontSize.xl, 
+    fontSize: theme.typography.fontSize.lg, 
     fontWeight: theme.typography.fontWeight.bold,
+    letterSpacing: -0.2,
   },
   bodyText: { 
     color: theme.colors.text.primary, 
     fontSize: theme.typography.fontSize.base, 
     lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
+    flex: 1,
   },
   listItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: theme.spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: 10,
+  },
+  listItemBorder: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border.light,
   },
   bulletPoint: {
-    marginTop: 6,
-  },
-  termCard: {
-    width: '100%',
-  },
-  termHeader: {
-    flexDirection: 'row',
+    marginTop: 4,
+    width: 20,
     alignItems: 'center',
-    gap: theme.spacing.sm,
   },
-  termBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.borderRadius.sm,
-    backgroundColor: theme.colors.iconBackground.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  termTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.text.primary,
-    flex: 1,
-  },
-  termDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border.light,
-  },
-  termExplanation: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.text.secondary,
-    lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
+  bulletDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.primary,
   },
   actionButtons: {
     width: '100%',

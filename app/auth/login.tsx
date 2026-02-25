@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
 import { Button } from '../../src/components/Button';
 import { Spacer } from '../../src/components/Spacer';
@@ -81,21 +82,32 @@ export default function Login() {
         style={styles.container} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+        <LinearGradient
+          colors={['#F0F7FF', '#F8FAFC', '#FFFFFF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.gradientBg}
         >
-          <View style={styles.centerContent}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="medical" size={48} color={theme.colors.primary} />
-            </View>
-            <Spacer size={24} />
-            <Text style={styles.title}>Welcome Back</Text>
-            <Spacer size={8} />
-            <Text style={styles.subtitle}>Sign in to access your health insights</Text>
-            <Spacer size={40} />
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.centerContent}>
+              <LinearGradient
+                colors={['#DBEAFE', '#BFDBFE']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoContainer}
+              >
+                <Ionicons name="medical" size={44} color={theme.colors.primary} />
+              </LinearGradient>
+              <Spacer size={28} />
+              <Text style={styles.title}>Welcome Back</Text>
+              <Spacer size={8} />
+              <Text style={styles.subtitle}>Sign in to access your health insights</Text>
+              <Spacer size={36} />
 
-            <Card elevated style={styles.formCard}>
+              <Card elevated style={styles.formCard}>
               <Text style={styles.label}>Email Address</Text>
               <Spacer size={8} />
               <View style={styles.inputContainer}>
@@ -167,11 +179,12 @@ export default function Login() {
 
             <Spacer size={24} />
 
-            <Text style={styles.footer}>
-              By continuing, you agree to our Terms of Service and Privacy Policy
-            </Text>
-          </View>
-        </ScrollView>
+              <Text style={styles.footer}>
+                By continuing, you agree to our Terms of Service and Privacy Policy
+              </Text>
+            </View>
+          </ScrollView>
+        </LinearGradient>
       </KeyboardAvoidingView>
 
       <LoadingOverlay 
@@ -185,35 +198,42 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
-    backgroundColor: theme.colors.background.secondary,
+    backgroundColor: theme.colors.background.primary,
+  },
+  gradientBg: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: theme.layout.screenPadding,
-    paddingVertical: theme.spacing['3xl'],
+    paddingVertical: theme.spacing['2xl'],
   },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    maxWidth: 480,
+    maxWidth: 420,
     width: '100%',
     alignSelf: 'center',
   },
   logoContainer: {
     width: 96,
     height: 96,
-    borderRadius: theme.borderRadius.xl,
-    backgroundColor: theme.colors.iconBackground.blue,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.lg,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
   },
   title: { 
     color: theme.colors.text.primary, 
-    fontSize: theme.typography.fontSize['3xl'], 
+    fontSize: theme.typography.fontSize['2xl'], 
     fontWeight: theme.typography.fontWeight.bold,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   subtitle: {
     color: theme.colors.text.secondary,
@@ -227,15 +247,15 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary, 
     fontSize: theme.typography.fontSize.sm,
     fontWeight: theme.typography.fontWeight.semibold,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.background.primary,
+    backgroundColor: theme.colors.background.secondary,
     borderWidth: 1.5,
     borderColor: theme.colors.border.light,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.lg,
     paddingHorizontal: theme.spacing.md,
     minHeight: theme.touchTarget.comfortable,
   },
@@ -244,8 +264,7 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     marginLeft: theme.spacing.sm,
-  },
-  input: {
+    padding: 4,
     flex: 1,
     color: theme.colors.text.primary,
     fontSize: theme.typography.fontSize.base,

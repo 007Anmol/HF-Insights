@@ -16,6 +16,17 @@ export const theme = {
     secondary: '#10B981',
     secondaryLight: '#34D399',
     
+    // Gradient presets for modern UI
+    gradient: {
+      primary: ['#3B82F6', '#2563EB'] as readonly string[],
+      primaryHover: ['#60A5FA', '#3B82F6'] as readonly string[],
+      secondary: ['#10B981', '#059669'] as readonly string[],
+      accent: ['#8B5CF6', '#6366F1'] as readonly string[],
+      subtle: ['#F8FAFC', '#EFF6FF'] as readonly string[],
+      card: ['#FFFFFF', '#FAFBFC'] as readonly string[],
+      hero: ['#EFF6FF', '#DBEAFE', '#BFDBFE'] as readonly string[],
+    },
+    
     // Background hierarchy
     background: {
       primary: '#FFFFFF',

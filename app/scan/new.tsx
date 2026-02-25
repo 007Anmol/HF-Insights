@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 import { Button } from '../../src/components/Button';
@@ -8,6 +9,7 @@ import { Card } from '../../src/components/Card';
 import { Spacer } from '../../src/components/Spacer';
 import { InfoBox } from '../../src/components/InfoBox';
 import { LoadingOverlay } from '../../src/components/LoadingOverlay';
+import { ToggleButton } from '../../src/components/ToggleButton';
 import { useApp } from '../../src/context/AppContext';
 import { generateInsightsFromImage, setInsightsLanguage } from '../../src/insights';
 import { supabase } from '../../src/supabase';
@@ -134,8 +136,15 @@ export default function NewScan() {
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
-          <Ionicons name="document-text-outline" size={40} color={theme.colors.primary} />
-          <Spacer size={16} />
+          <LinearGradient
+            colors={['#EFF6FF', '#DBEAFE']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerIconContainer}
+          >
+            <Ionicons name="document-text-outline" size={36} color={theme.colors.primary} />
+          </LinearGradient>
+          <Spacer size={20} />
           <Text style={styles.title}>Upload Medical Scan</Text>
           <Spacer size={8} />
           <Text style={styles.subtitle}>
@@ -147,19 +156,29 @@ export default function NewScan() {
 
         <Card elevated>
           <Pressable onPress={pickImage} style={styles.uploadZone}>
-            <View style={styles.uploadZoneInner}>
+            <LinearGradient
+              colors={['#F8FAFC', '#EFF6FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.uploadZoneInner}
+            >
               {uri ? (
                 <Image source={{ uri }} style={styles.previewImage} />
               ) : (
                 <>
-                  <View style={styles.uploadIconContainer}>
-                    <Ionicons name="cloud-upload-outline" size={48} color={theme.colors.primary} />
-                  </View>
-                  <Spacer size={16} />
+                  <LinearGradient
+                    colors={['#FFFFFF', '#F8FAFC']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.uploadIconContainer}
+                  >
+                    <Ionicons name="cloud-upload-outline" size={44} color={theme.colors.primary} />
+                  </LinearGradient>
+                  <Spacer size={20} />
                   <Text style={styles.uploadTitle}>Tap to Upload</Text>
-                  <Spacer size={8} />
+                  <Spacer size={6} />
                   <Text style={styles.uploadSubtitle}>or drag and drop your file here</Text>
-                  <Spacer size={16} />
+                  <Spacer size={20} />
                   <View style={styles.formatChips}>
                     {formatChips.map((format) => (
                       <View key={format} style={styles.formatChip}>
@@ -169,7 +188,7 @@ export default function NewScan() {
                   </View>
                 </>
               )}
-            </View>
+            </LinearGradient>
           </Pressable>
         </Card>
 
@@ -211,31 +230,18 @@ export default function NewScan() {
         <Card elevated>
           <View style={styles.languageContainer}>
             <View style={styles.languageHeader}>
-              <Ionicons name="language-outline" size={20} color={theme.colors.primary} />
-              <Text style={styles.languageLabel}>Language</Text>
+              <Ionicons name="language-outline" size={22} color={theme.colors.primary} />
+              <Text style={styles.languageLabel}>Insights Language</Text>
             </View>
-            <Spacer size={8} />
-            <View style={styles.langToggle}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  title="English"
-                  variant={language === 'en' ? 'primary' : 'outline'}
-                  size="small"
-                  onPress={() => setLanguage('en')}
-                  fullWidth
-                />
-              </View>
-              <Spacer size={8} />
-              <View style={{ flex: 1 }}>
-                <Button
-                  title="Hindi"
-                  variant={language === 'hi' ? 'primary' : 'outline'}
-                  size="small"
-                  onPress={() => setLanguage('hi')}
-                  fullWidth
-                />
-              </View>
-            </View>
+            <Spacer size={12} />
+            <ToggleButton
+              options={[
+                { label: 'English', value: 'en' },
+                { label: 'हिंदी', value: 'hi' },
+              ]}
+              value={language}
+              onChange={(val) => setLanguage(val as 'en' | 'hi')}
+            />
           </View>
         </Card>
 
@@ -277,7 +283,7 @@ export default function NewScan() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: theme.colors.background.primary,
+    backgroundColor: theme.colors.background.secondary,
   },
   contentContainer: {
     padding: theme.layout.screenPadding,
@@ -285,65 +291,89 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
   },
+  headerIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   title: { 
     color: theme.colors.text.primary, 
-    fontSize: theme.typography.fontSize['3xl'], 
+    fontSize: theme.typography.fontSize['2xl'], 
     fontWeight: theme.typography.fontWeight.bold,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   subtitle: {
     color: theme.colors.text.secondary,
     fontSize: theme.typography.fontSize.base,
     textAlign: 'center',
     lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
+    maxWidth: 300,
   },
   uploadZone: {
-    minHeight: 320,
+    minHeight: 300,
   },
   uploadZoneInner: {
     flex: 1,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: theme.colors.uploadZone.borderDashed,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.uploadZone.background,
+    borderColor: theme.colors.primary + '50',
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     padding: theme.spacing.xl,
   },
   uploadIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.background.primary,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
   },
   uploadTitle: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.text.primary,
+    letterSpacing: -0.2,
   },
   uploadSubtitle: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
+    color: theme.colors.text.tertiary,
   },
   formatChips: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   formatChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.background.primary,
     borderWidth: 1,
     borderColor: theme.colors.border.light,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   formatChipText: {
     fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text.secondary,
+    letterSpacing: 0.5,
   },
   previewImage: {
     width: '100%',
@@ -367,7 +397,7 @@ const styles = StyleSheet.create({
   languageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   languageLabel: {
     color: theme.colors.text.primary,
@@ -386,7 +416,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   featureText: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.text.primary,
     fontWeight: theme.typography.fontWeight.medium,
   },
