@@ -70,13 +70,15 @@ export const Button: React.FC<Props> = ({
   const renderContent = () => (
     <View style={styles.contentRow}>
       {icon && <View style={styles.iconWrapper}>{icon}</View>}
-      <Text style={[
-        styles.text, 
-        textSizeStyles,
-        isOutline && styles.textOutline,
-        isGhost && styles.textGhost,
-        disabled && styles.textDisabled
-      ]}>
+      <Text 
+        style={[
+          styles.text, 
+          textSizeStyles,
+          isOutline && styles.textOutline,
+          isGhost && styles.textGhost,
+          disabled && styles.textDisabled
+        ]}
+      >
         {title}
       </Text>
     </View>
@@ -103,18 +105,15 @@ export const Button: React.FC<Props> = ({
           style,
         ]}
       >
-        {isGradient ? (
+        {isGradient && (
           <LinearGradient
             colors={getGradientColors() as [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.gradientInner, sizeStyles]}
-          >
-            {renderContent()}
-          </LinearGradient>
-        ) : (
-          renderContent()
+            style={styles.gradientInner}
+          />
         )}
+        {renderContent()}
       </Pressable>
     </Animated.View>
   );
@@ -125,11 +124,10 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: theme.touchTarget.comfortable,
     overflow: 'hidden',
   },
   gradientInner: {
-    width: '100%',
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: theme.borderRadius.lg,
@@ -143,7 +141,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderWidth: 2,
     borderColor: theme.colors.primary,
   },
@@ -151,20 +149,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   small: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    minHeight: theme.touchTarget.min,
+    height: 44,
+    paddingHorizontal: 24,
     borderRadius: theme.borderRadius.md,
   },
   medium: {
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
+    height: 50,
+    paddingHorizontal: 32,
   },
   large: {
-    paddingVertical: 18,
-    paddingHorizontal: theme.spacing.xl,
-    minHeight: 60,
-    borderRadius: theme.borderRadius.xl,
+    height: 56,
+    paddingHorizontal: 40,
   },
   fullWidth: {
     width: '100%',

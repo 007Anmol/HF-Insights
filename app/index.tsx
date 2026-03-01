@@ -120,9 +120,7 @@ export default function Home() {
           <View style={styles.buttonGroup}>
             <Button title="Get Started" onPress={() => router.push('/auth/signup')} size="large" fullWidth />
             <Spacer size={14} />
-            <View style={styles.outlineButtonWrapper}>
-              <Button title="Sign In" variant="outline" onPress={() => router.push('/auth/login')} size="large" fullWidth />
-            </View>
+            <Button title="Sign In" variant="outline" onPress={() => router.push('/auth/login')} size="large" fullWidth />
           </View>
         </Animated.View>
       </LinearGradient>
@@ -258,11 +256,8 @@ const styles = StyleSheet.create({
   },
   buttonGroup: {
     width: '100%',
-    maxWidth: 360,
-  },
-  outlineButtonWrapper: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: theme.borderRadius.xl,
+    maxWidth: 300,
+    alignSelf: 'center',
   },
   section: {
     width: '100%',

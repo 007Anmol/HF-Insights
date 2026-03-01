@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   header: { 
     backgroundColor: theme.colors.background.primary,
     padding: theme.layout.screenPadding,
-    paddingTop: theme.spacing.xl,
+    paddingTop: theme.spacing['2xl'] + 16,
     ...theme.shadows.sm,
   },
   headerContent: {

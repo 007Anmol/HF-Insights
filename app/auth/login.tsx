@@ -131,10 +131,10 @@ export default function Login() {
               <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.tertiary} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={styles.input}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Enter your password"
+                  placeholder="Enter password"
                   placeholderTextColor={theme.colors.text.tertiary}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
@@ -262,13 +262,15 @@ const styles = StyleSheet.create({
   inputIcon: {
     marginRight: theme.spacing.sm,
   },
-  eyeIcon: {
-    marginLeft: theme.spacing.sm,
-    padding: 4,
+  input: {
     flex: 1,
     color: theme.colors.text.primary,
     fontSize: theme.typography.fontSize.base,
     paddingVertical: theme.spacing.sm,
+  },
+  eyeIcon: {
+    marginLeft: theme.spacing.sm,
+    padding: 4,
   },
   divider: {
     flexDirection: 'row',

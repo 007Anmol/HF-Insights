@@ -207,7 +207,7 @@ export default function NewScan() {
         <Spacer size={24} />
 
         <View style={styles.buttonRow}>
-          <View style={{ flex: 1 }}>
+          <View style={styles.buttonHalf}>
             <Button 
               title="Take Photo" 
               onPress={takePhoto}
@@ -215,7 +215,7 @@ export default function NewScan() {
               fullWidth
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={styles.buttonHalf}>
             <Button 
               title="Analyze" 
               onPress={analyze} 
@@ -384,6 +384,11 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'stretch',
+  },
+  buttonHalf: {
+    flex: 1,
+    minWidth: 0,
   },
   languageRow: {
     flexDirection: 'row',
