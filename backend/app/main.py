@@ -25,6 +25,7 @@ app.add_middleware(
 
 # 🔹 Health check (used by Render + warm-up)
 @app.get("/health")
+@app.head("/health")
 def health():
     return {"ok": True}
 
