@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "HealthFutureInsights",
+    "slug": "health-future-insights",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "icon": "./assets/icon.jpeg",
+    "scheme": "hfi",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.anmol30.hfinsights",
+      "versionCode": 4,
+      "permissions": [
+        "CAMERA",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "kotlinVersion": "2.0.21"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "supabaseUrl": "https://sjqpojzczgabguzkjljf.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqcXBvanpjemdhYmd1emtqbGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1MzE1MjcsImV4cCI6MjA4NTEwNzUyN30.z7Yzj1vfj3UK4nzgnTyMuLHFYqz9oCYoHQl-b4TP3as",
+      "supabaseStorageBucket": "scans",
+      "router": {},
+      "eas": {
+        "projectId": "0e5f879c-9180-4370-93b7-7f168c73b3b2"
+      }
+    }
+  }
+}

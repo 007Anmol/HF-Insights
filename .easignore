@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+.expo-shared/
+dist/
+android/.gradle/
+android/build/
+android/app/build/
+backend/.venv/
+**/__pycache__/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
