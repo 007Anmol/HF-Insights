@@ -180,7 +180,7 @@ export default function Home() {
               "Finally understood my X-ray report without Googling every term! The plain language explanations are clear and reassuring."
             </Text>
             <Spacer size={8} />
-            <Text style={styles.testimonialAuthor}>— Sarah M.</Text>
+            <Text style={styles.testimonialAuthor}>— Shruti A.</Text>
           </Card>
           <Spacer size={16} />
           <Card elevated>
@@ -196,7 +196,7 @@ export default function Home() {
               "Fast and simple. The insights helped me ask better questions to my doctor. Highly recommend!"
             </Text>
             <Spacer size={8} />
-            <Text style={styles.testimonialAuthor}>— Michael R.</Text>
+            <Text style={styles.testimonialAuthor}>— Bhargav P.</Text>
           </Card>
         </View>
       </View>
