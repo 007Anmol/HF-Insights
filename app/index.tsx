@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '../src/components/Button';
 import { Card } from '../src/components/Card';
 import { Spacer } from '../src/components/Spacer';
+import { useApp } from '../src/context/AppContext';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/theme';
 
@@ -65,8 +66,16 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, del
 
 export default function Home() {
   const router = useRouter();
+  const { user, authReady } = useApp();
   const heroFadeAnim = useRef(new Animated.Value(0)).current;
   const heroSlideAnim = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (user) {
+      router.replace('/dashboard');
+    }
+  }, [authReady, user, router]);
 
   useEffect(() => {
     Animated.parallel([
@@ -84,6 +93,16 @@ export default function Home() {
       }),
     ]).start();
   }, []);
+
+  if (!authReady) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Spacer size={12} />
+        <Text style={styles.loadingText}>Restoring your session...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -205,6 +224,17 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.background.primary,
+    paddingHorizontal: theme.layout.screenPadding,
+  },
+  loadingText: {
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.base,
+  },
   container: { 
     backgroundColor: theme.colors.background.primary,
     flex: 1,

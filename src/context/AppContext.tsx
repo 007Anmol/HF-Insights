@@ -32,6 +32,7 @@ export type ScanItem = {
 
 type AppContextType = {
   user: User | null;
+  authReady: boolean;
   setUser: (u: User | null) => void;
   scans: ScanItem[];
   addScan: (s: ScanItem) => Promise<string>;
@@ -43,33 +44,67 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUserState] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [scans, setScans] = useState<ScanItem[]>([]);
+
+  const toAppUser = (sessionUser: any): User => ({
+    id: sessionUser.id,
+    name: sessionUser.user_metadata?.name || sessionUser.email || 'User',
+    email: sessionUser.email || '',
+  });
 
   useEffect(() => {
     if (!supabase) return;
     
     (async () => {
-      const session = await supabase.auth.getSession();
-      const user = session.data.session?.user;
-      if (user) setUserState({ id: user.id, name: user.user_metadata?.name || user.email || 'User', email: user.email || '' });
-      await fetchScans();
+      try {
+        const [cachedUser, session] = await Promise.all([
+          loadUser(),
+          supabase.auth.getSession(),
+        ]);
+
+        if (cachedUser) {
+          setUserState(cachedUser);
+        }
+
+        const sessionUser = session.data.session?.user;
+        if (sessionUser) {
+          const normalized = toAppUser(sessionUser);
+          setUserState(normalized);
+          await saveUser(normalized);
+          await fetchScans(sessionUser.id);
+        } else {
+          await fetchScans(cachedUser?.id ?? null);
+        }
+      } finally {
+        setAuthReady(true);
+      }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user;
-      if (user) setUserState({ id: user.id, name: user.user_metadata?.name || user.email || 'User', email: user.email || '' });
-      else setUserState(null);
-      fetchScans();
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const sessionUser = session?.user;
+      if (sessionUser) {
+        const normalized = toAppUser(sessionUser);
+        setUserState(normalized);
+        await saveUser(normalized);
+        await fetchScans(sessionUser.id);
+      } else {
+        setUserState(null);
+        await saveUser(null);
+        await fetchScans(null);
+      }
+
+      setAuthReady(true);
     });
     return () => {
       sub.subscription.unsubscribe();
     };
   }, []);
 
-  const fetchScans = async () => {
+  const fetchScans = async (overrideUserId?: string | null) => {
     try {
       if (!supabase) return;
-      const userId = user?.id;
+      const userId = overrideUserId ?? user?.id ?? null;
       const query = supabase.from('scans').select('*').order('created_at', { ascending: false });
       const { data, error } = userId ? await query.eq('user_id', userId) : await query;
       if (error) throw error;
@@ -174,8 +209,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const value = useMemo(
-    () => ({ user, setUser, scans, addScan, removeScan, clearScans }),
-    [user, scans]
+    () => ({ user, authReady, setUser, scans, addScan, removeScan, clearScans }),
+    [user, authReady, scans]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
