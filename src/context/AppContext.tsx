@@ -54,7 +54,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   useEffect(() => {
-    if (!supabase) return;
+    let isActive = true;
+    const authReadyTimer = setTimeout(() => {
+      if (isActive) setAuthReady(true);
+    }, 4000);
+
+    const markAuthReady = () => {
+      if (!isActive) return;
+      setAuthReady(true);
+      clearTimeout(authReadyTimer);
+    };
+
+    if (!supabase) {
+      (async () => {
+        const cachedUser = await loadUser();
+        const cachedScans = await loadScans();
+        if (cachedUser && isActive) setUserState(cachedUser);
+        if (cachedScans.length && isActive) setScans(cachedScans);
+        markAuthReady();
+      })();
+      return () => {
+        isActive = false;
+        clearTimeout(authReadyTimer);
+      };
+    }
     
     (async () => {
       try {
@@ -64,20 +87,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ]);
 
         if (cachedUser) {
-          setUserState(cachedUser);
+          if (isActive) setUserState(cachedUser);
         }
 
         const sessionUser = session.data.session?.user;
         if (sessionUser) {
           const normalized = toAppUser(sessionUser);
-          setUserState(normalized);
+          if (isActive) setUserState(normalized);
           await saveUser(normalized);
-          await fetchScans(sessionUser.id);
+          void fetchScans(sessionUser.id);
         } else {
-          await fetchScans(cachedUser?.id ?? null);
+          void fetchScans(cachedUser?.id ?? null);
         }
       } finally {
-        setAuthReady(true);
+        markAuthReady();
       }
     })();
 
@@ -87,16 +110,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const normalized = toAppUser(sessionUser);
         setUserState(normalized);
         await saveUser(normalized);
-        await fetchScans(sessionUser.id);
+        void fetchScans(sessionUser.id);
       } else {
         setUserState(null);
         await saveUser(null);
-        await fetchScans(null);
+        void fetchScans(null);
       }
 
-      setAuthReady(true);
+      markAuthReady();
     });
     return () => {
+      isActive = false;
+      clearTimeout(authReadyTimer);
       sub.subscription.unsubscribe();
     };
   }, []);
@@ -105,6 +130,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       if (!supabase) return;
       const userId = overrideUserId ?? user?.id ?? null;
+
+      // Avoid fetching all rows when unauthenticated; show cached scans only.
+      if (!userId) {
+        const cached = await loadScans();
+        setScans(cached);
+        return;
+      }
+
       const query = supabase.from('scans').select('*').order('created_at', { ascending: false });
       const { data, error } = userId ? await query.eq('user_id', userId) : await query;
       if (error) throw error;
