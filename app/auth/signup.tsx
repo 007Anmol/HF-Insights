@@ -8,13 +8,13 @@ import { Spacer } from '../../src/components/Spacer';
 import { Card } from '../../src/components/Card';
 import { LoadingOverlay } from '../../src/components/LoadingOverlay';
 import { useApp } from '../../src/context/AppContext';
-import { supabase } from '../../src/supabase';
+import { setPendingSignup } from '../../src/lib/pendingSignup';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme';
 
 export default function Signup() {
   const router = useRouter();
-  const { setUser } = useApp();
+  const { user, authReady } = useApp();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,55 +40,27 @@ export default function Signup() {
       return;
     }
 
-    if (!supabase) {
-      Toast.show({ 
-        type: 'error', 
-        text1: 'Error', 
-        text2: 'Authentication service is not available' 
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
-        password, 
-        options: { data: { name } } 
-      });
-      
-      if (error) {
-        Toast.show({ 
-          type: 'error', 
-          text1: 'Signup failed', 
-          text2: error.message 
-        });
-        return;
-      }
-
-      const u = data.user;
-      await setUser(u ? { 
-        id: u.id, 
-        name: u.user_metadata?.name || name, 
-        email: u.email || email 
-      } : null);
-
-      Toast.show({ 
-        type: 'success', 
-        text1: 'Welcome!', 
-        text2: 'Account created successfully' 
-      });
-      router.replace('/dashboard');
+      setPendingSignup({ name, email: email.trim(), password });
+      router.push('/auth/terms');
     } catch (error: any) {
       Toast.show({ 
-        type: 'error', 
-        text1: 'Signup failed', 
-        text2: error.message 
+        type: 'error',
+        text1: 'Unable to continue',
+        text2: error?.message || 'Please try again.',
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    if (!authReady) return;
+    if (user) {
+      router.replace('/dashboard');
+    }
+  }, [authReady, user, router]);
 
   return (
     <>
@@ -183,7 +155,7 @@ export default function Signup() {
               <Spacer size={32} />
 
               <Button 
-                title="Create Account" 
+                title="Continue to Terms" 
                 onPress={onSignup} 
                 size="large"
                 fullWidth
