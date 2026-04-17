@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.anmol30.hfinsights",
-      "versionCode": 5,
+      "versionCode": 6,
       "permissions": [
         "CAMERA",
         "INTERNET"
