@@ -1,17 +1,82 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, Pressable, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useApp } from '../../src/context/AppContext';
 import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
 import { Spacer } from '../../src/components/Spacer';
+import { LoadingOverlay } from '../../src/components/LoadingOverlay';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { theme } from '../../src/theme';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { scans, user, removeScan } = useApp();
+  const { scans, user, removeScan, signOut, deleteAccount } = useApp();
+  const [isProcessingAccountAction, setIsProcessingAccountAction] = useState(false);
+
+  const openProfileActions = () => {
+    if (!user) return;
+
+    Alert.alert(
+      'Account options',
+      'Choose what you want to do with your account.',
+      [
+        {
+          text: 'Sign out',
+          style: 'default',
+          onPress: async () => {
+            setIsProcessingAccountAction(true);
+            try {
+              await signOut();
+              router.replace('/');
+            } catch (error: any) {
+              Toast.show({
+                type: 'error',
+                text1: 'Sign out failed',
+                text2: error?.message || 'Please try again.',
+              });
+            } finally {
+              setIsProcessingAccountAction(false);
+            }
+          },
+        },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Delete account permanently?',
+              'This will remove your Supabase account and your saved data. This action cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setIsProcessingAccountAction(true);
+                    try {
+                      await deleteAccount();
+                      router.replace('/');
+                    } catch (error: any) {
+                      Toast.show({
+                        type: 'error',
+                        text1: 'Delete failed',
+                        text2: error?.message || 'Please try again.',
+                      });
+                    } finally {
+                      setIsProcessingAccountAction(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -23,22 +88,7 @@ export default function Dashboard() {
           </View>
           <Pressable
             style={styles.avatarContainer}
-            onPress={() => {
-              if (user) {
-                // Show minimal profile info: name and email
-                // Using Toast to avoid adding a new screen
-                // Name
-                // Email
-                // The app stores only name and email in profile
-                // and derives them from Supabase user metadata
-                // which matches the requested behavior.
-                Toast.show({
-                  type: 'info',
-                  text1: user.name,
-                  text2: user.email,
-                });
-              }
-            }}
+            onPress={openProfileActions}
           >
             <Ionicons name="person" size={24} color={theme.colors.primary} />
           </Pressable>
@@ -123,6 +173,11 @@ export default function Dashboard() {
             </View>
           </Card>
         }
+      />
+
+      <LoadingOverlay
+        visible={isProcessingAccountAction}
+        message="Updating your account..."
       />
     </View>
   );

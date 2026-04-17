@@ -48,6 +48,15 @@ npx eas build -p ios --profile production
   - `supabaseAnonKey`: your anon key
   - `supabaseStorageBucket`: `scans` (create this storage bucket)
 
+### Account Deletion Backend
+- The profile menu supports sign out and permanent account deletion.
+- To enable account deletion in production, set these backend env vars:
+  - `SUPABASE_URL`
+  - `SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `SUPABASE_STORAGE_BUCKET` (defaults to `scans`)
+- The delete flow calls the Render backend at `https://healthfutureinsights.onrender.com/account/delete`.
+
 ### Database Schema
 Create a table `scans` with RLS enabled:
 - Columns: `id uuid default gen_random_uuid() primary key`, `user_id uuid references auth.users not null`, `image_url text not null`, `created_at timestamp with time zone default now()`, `insights jsonb not null`

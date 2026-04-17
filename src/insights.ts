@@ -16,7 +16,7 @@ export type Insights = ApiInsights & {
   laymanTerms?: { term: string; plain: string }[];
 };
 
-const BACKEND_URL = 'https://healthfutureinsights.onrender.com';
+export const BACKEND_URL = 'https://healthfutureinsights.onrender.com';
 
 // Call FASTAPI to analyze the image. Falls back with a friendly error.
 let currentLanguage: 'en' | 'hi' = 'en';

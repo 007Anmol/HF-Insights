@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import Toast from 'react-native-toast-message';
 import { supabase, type DbScan } from '../supabase';
 import { loadScans, saveScans, loadUser, saveUser } from '@utils/storage';
+import { BACKEND_URL } from '../insights';
 
 export type User = {
   id: string;
@@ -34,6 +35,8 @@ type AppContextType = {
   user: User | null;
   authReady: boolean;
   setUser: (u: User | null) => void;
+  signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   scans: ScanItem[];
   addScan: (s: ScanItem) => Promise<string>;
   removeScan: (id: string) => void;
@@ -165,6 +168,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await saveUser(u);
   };
 
+  const clearAccountState = async () => {
+    setUserState(null);
+    setScans([]);
+    await saveUser(null);
+    await saveScans([]);
+  };
+
+  const signOut = async () => {
+    try {
+      if (supabase) {
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+    } finally {
+      await clearAccountState();
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (!accessToken) {
+      throw new Error('No active session found');
+    }
+
+    const response = await fetch(`${BACKEND_URL}/account/delete`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || 'Unable to delete account');
+    }
+
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } finally {
+      await clearAccountState();
+    }
+  };
+
   const addScan = async (s: ScanItem): Promise<string> => {
     try {
       if (!supabase) throw new Error('Supabase client not initialized');
@@ -242,7 +293,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const value = useMemo(
-    () => ({ user, authReady, setUser, scans, addScan, removeScan, clearScans }),
+    () => ({ user, authReady, setUser, signOut, deleteAccount, scans, addScan, removeScan, clearScans }),
     [user, authReady, scans]
   );
 
