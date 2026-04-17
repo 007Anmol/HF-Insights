@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { supabase, type DbScan } from '../supabase';
 import { loadScans, saveScans, loadUser, saveUser } from '@utils/storage';
-import { BACKEND_URL } from '../insights';
+import { BACKEND_URL, pingBackendHealth } from '../insights';
 
 export type User = {
   id: string;
@@ -55,6 +56,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     name: sessionUser.user_metadata?.name || sessionUser.email || 'User',
     email: sessionUser.email || '',
   });
+
+  useEffect(() => {
+    const HEARTBEAT_MS = 8 * 60 * 1000;
+
+    const pingIfActive = async () => {
+      if (AppState.currentState !== 'active') return;
+      await pingBackendHealth();
+    };
+
+    const initialPingTimer = setTimeout(() => {
+      void pingIfActive();
+    }, 2000);
+
+    const heartbeatInterval = setInterval(() => {
+      void pingIfActive();
+    }, HEARTBEAT_MS);
+
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void pingBackendHealth();
+      }
+    });
+
+    return () => {
+      clearTimeout(initialPingTimer);
+      clearInterval(heartbeatInterval);
+      appStateSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
