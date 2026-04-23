@@ -1,5 +1,7 @@
+// Updated TermsAndConsent Screen (Apple Compliant)
+
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
@@ -63,6 +65,7 @@ export default function TermsAndConsent() {
     setIsLoading(true);
     try {
       const consentAt = new Date().toISOString();
+
       const { data, error } = await supabase.auth.signUp({
         email: draft.email,
         password: draft.password,
@@ -85,6 +88,7 @@ export default function TermsAndConsent() {
       }
 
       const u = data.user;
+
       await setUser(
         u
           ? {
@@ -96,11 +100,13 @@ export default function TermsAndConsent() {
       );
 
       clearPendingSignup();
+
       Toast.show({
         type: 'success',
         text1: 'Consent recorded',
         text2: 'Your account has been created successfully.',
       });
+
       router.replace('/dashboard');
     } catch (error: any) {
       Toast.show({
@@ -125,39 +131,89 @@ export default function TermsAndConsent() {
           <View style={styles.centerContent}>
             <LinearGradient
               colors={['#DBEAFE', '#BFDBFE']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
               style={styles.logoContainer}
             >
               <Ionicons name="shield-checkmark" size={40} color={theme.colors.primary} />
             </LinearGradient>
 
             <Spacer size={24} />
+
             <Text style={styles.title}>Terms and AI Consent</Text>
+
             <Spacer size={8} />
-            <Text style={styles.subtitle}>Please review and confirm before creating your account.</Text>
+
+            <Text style={styles.subtitle}>
+              Please review and confirm before creating your account.
+            </Text>
+
             <Spacer size={24} />
 
             <Card elevated style={styles.card}>
               <Text style={styles.sectionTitle}>How AI is used</Text>
+
               <Spacer size={10} />
-              <Text style={styles.bodyText}>1. Your uploaded X-ray image is analyzed by our AI system to generate medical insights.</Text>
+
+              <Text style={styles.bodyText}>
+                1. Your uploaded X-ray image (including basic metadata such as file type and timestamp) 
+                will be securely transmitted to and processed by {" "}
+                <Text style={{ fontWeight: 'bold' }}>[AI PROVIDER NAME]</Text> 
+                {" "}to generate medical insights.
+              </Text>
+
               <Spacer size={8} />
-              <Text style={styles.bodyText}>2. AI output is assistive only and does not replace professional medical diagnosis.</Text>
+
+              <Text style={styles.bodyText}>
+                2. Your data is shared only for analysis purposes and is not used for training or stored beyond processing (if applicable).
+              </Text>
+
               <Spacer size={8} />
-              <Text style={styles.bodyText}>3. You should always consult a qualified healthcare provider for medical decisions.</Text>
+
+              <Text style={styles.bodyText}>
+                3. The AI output is assistive only and does not replace professional medical diagnosis.
+              </Text>
+
+              <Spacer size={8} />
+
+              <Text style={styles.bodyText}>
+                4. You should always consult a qualified healthcare provider before making medical decisions.
+              </Text>
 
               <Spacer size={20} />
+
               <Text style={styles.sectionTitle}>Consent statement</Text>
+
               <Spacer size={10} />
+
               <Text style={styles.consentText}>
-                By selecting "Yes, I Consent", you agree that your X-ray data may be processed by AI for insight generation and that you understand the limitations described above.
+                By selecting "Yes, I Consent", you agree that:
+                {"\n\n"}• Your X-ray image will be securely transmitted to and processed by [AI PROVIDER NAME]
+                {"\n"}• This involves sharing your data with a third-party AI service
+                {"\n"}• Your data will only be used for generating insights
+                {"\n"}• You have read and agree to our Privacy Policy
+              </Text>
+
+              <Spacer size={16} />
+
+              <Text
+                style={styles.link}
+                onPress={() => Linking.openURL('https://your-privacy-policy-url.com')}
+              >
+                Read Privacy Policy
               </Text>
 
               <Spacer size={24} />
+
               <Button title="Yes, I Consent" onPress={onAgreeAndCreateAccount} size="large" fullWidth />
+
               <Spacer size={12} />
-              <Button title="No, I Do Not Consent" variant="outline" onPress={onDecline} size="large" fullWidth />
+
+              <Button
+                title="No, I Do Not Consent"
+                variant="outline"
+                onPress={onDecline}
+                size="large"
+                fullWidth
+              />
             </Card>
           </View>
         </LinearGradient>
@@ -195,11 +251,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 10,
   },
   title: {
     color: theme.colors.text.primary,
@@ -230,5 +281,10 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base,
     lineHeight: 22,
     fontWeight: theme.typography.fontWeight.medium,
+  },
+  link: {
+    color: '#2563EB',
+    textDecorationLine: 'underline',
+    fontSize: 14,
   },
 });
