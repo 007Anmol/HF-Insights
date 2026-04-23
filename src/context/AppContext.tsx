@@ -123,7 +123,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (isActive) setUserState(cachedUser);
         }
 
-        const sessionUser = session.data.session?.user;
+        const sessionUser = session?.data?.session?.user;
         if (sessionUser) {
           const normalized = toAppUser(sessionUser);
           if (isActive) setUserState(normalized);
@@ -132,6 +132,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } else {
           void fetchScans(cachedUser?.id ?? null);
         }
+      } catch (err) {
+        console.warn('Session init failed:', err);
       } finally {
         markAuthReady();
       }

@@ -66,10 +66,16 @@ export default function NewScan() {
       Toast.show({ type: 'error', text1: 'Service unavailable', text2: 'Please try again later' });
       return;
     }
-    const { data: sessionRes } = await supabase.auth.getSession();
-    if (!sessionRes.session?.user) {
-      Toast.show({ type: 'info', text1: 'Sign in required', text2: 'Please log in to save scans to cloud' });
-      router.push('/auth/login');
+    try {
+      const { data: sessionRes, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) throw sessionErr;
+      if (!sessionRes?.session?.user) {
+        Toast.show({ type: 'info', text1: 'Sign in required', text2: 'Please log in to save scans to cloud' });
+        router.push('/auth/login');
+        return;
+      }
+    } catch (e: any) {
+      Toast.show({ type: 'error', text1: 'Session error', text2: e.message || 'Could not verify session' });
       return;
     }
     

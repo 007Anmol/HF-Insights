@@ -156,7 +156,7 @@ export default function TermsAndConsent() {
               <Text style={styles.bodyText}>
                 1. Your uploaded X-ray image (including basic metadata such as file type and timestamp) 
                 will be securely transmitted to and processed by {" "}
-                <Text style={{ fontWeight: 'bold' }}>[AI PROVIDER NAME]</Text> 
+                <Text style={{ fontWeight: 'bold' }}>GEMINI</Text> 
                 {" "}to generate medical insights.
               </Text>
 
@@ -186,7 +186,7 @@ export default function TermsAndConsent() {
 
               <Text style={styles.consentText}>
                 By selecting "Yes, I Consent", you agree that:
-                {"\n\n"}• Your X-ray image will be securely transmitted to and processed by [AI PROVIDER NAME]
+                {"\n\n"}• Your X-ray image will be securely transmitted to and processed by GEMINI
                 {"\n"}• This involves sharing your data with a third-party AI service
                 {"\n"}• Your data will only be used for generating insights
                 {"\n"}• You have read and agree to our Privacy Policy
@@ -196,7 +196,7 @@ export default function TermsAndConsent() {
 
               <Text
                 style={styles.link}
-                onPress={() => Linking.openURL('https://your-privacy-policy-url.com')}
+                onPress={() => Linking.openURL('https://www.termsfeed.com/live/28ca9c10-9b16-4ed9-a81e-f6c225b14450')}
               >
                 Read Privacy Policy
               </Text>
