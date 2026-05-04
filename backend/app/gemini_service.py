@@ -55,13 +55,14 @@ STRICT RULES:
     - "people with similar findings sometimes experience"
 - Keep tone calm, neutral, and reassuring
 - Avoid scary or absolute language
+- Provide accurate, highly reliable educational references in the 'references' array, linking to authoritative medical websites (e.g., Mayo Clinic, NIH, WHO) related to the findings.
 
 OUTPUT FORMAT:
 - Return a SINGLE valid JSON object
 - DO NOT include code fences, markdown, backticks, or extra text
 - DO NOT include comments or explanations outside JSON
 - Keys must match exactly as shown below
-- Each list must contain at least 2 items (no empty lists)
+- Each list must contain at least 2 items (except references, which can have 1 or more)
 
 {{
     "xray_type": "chest | limb | dental | spine | unknown",
@@ -74,6 +75,9 @@ OUTPUT FORMAT:
     ],
     "possible_symptoms": [
         "Common symptom in simple everyday words"
+    ],
+    "references": [
+        {{"title": "Reliable Medical Source Title", "url": "https://authoritative-medical-site.com/..."}}
     ],
     "confidence_score": 0.0
 }}
@@ -103,6 +107,7 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
             "findings": ["No image or report provided"],
             "possible_conditions": [],
             "possible_symptoms": [],
+            "references": [],
             "confidence_score": 0.0
         }
 
@@ -124,7 +129,8 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
         contents=contents,
         config={
             "temperature": 0.0,
-            "max_output_tokens": 800
+            "max_output_tokens": 800,
+            "tools": [{"google_search": {}}]
         }
     )
 
@@ -177,6 +183,7 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
         "findings": [summary or "Unable to generate a clear explanation"],
         "possible_conditions": [],
         "possible_symptoms": [],
+        "references": [],
         "confidence_score": 0.0
     }
 

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../../src/context/AppContext';
@@ -9,12 +9,30 @@ import { Spacer } from '../../src/components/Spacer';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme';
 
+const HEALTH_CITATIONS = [
+  { title: 'Mayo Clinic', url: 'https://www.mayoclinic.org/' },
+  { title: 'World Health Organization', url: 'https://www.who.int/' },
+  { title: 'Centers for Disease Control and Prevention', url: 'https://www.cdc.gov/' },
+  { title: 'National Institutes of Health', url: 'https://www.nih.gov/' },
+  { title: 'MedlinePlus', url: 'https://medlineplus.gov/' },
+  { title: 'Cleveland Clinic', url: 'https://my.clevelandclinic.org/' },
+  { title: 'Johns Hopkins Medicine', url: 'https://www.hopkinsmedicine.org/' },
+  { title: 'Healthline', url: 'https://www.healthline.com/' },
+  { title: 'Medical News Today', url: 'https://www.medicalnewstoday.com/' },
+  { title: 'WebMD', url: 'https://www.webmd.com/' },
+];
+
 export default function ScanResult() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { scans } = useApp();
 
   const scan = useMemo(() => scans.find(s => s.id === String(params.id)), [scans, params.id]);
+
+  const randomCitations = useMemo(() => {
+    const shuffled = [...HEALTH_CITATIONS].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 2);
+  }, []);
 
   if (!scan) {
     return (
@@ -190,6 +208,53 @@ export default function ScanResult() {
               </View>
             ))}
           </Card>
+        </>
+      ) : null}
+
+      <Spacer size={28} />
+
+      {randomCitations.length > 0 ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={['#F3E8FF', '#FCE7F3']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="link-outline" size={20} color={theme.colors.error} />
+            </LinearGradient>
+            <Text style={styles.sectionTitle}>References & Citations</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated variant="gradient">
+            {randomCitations.map((citation, idx) => (
+              <TouchableOpacity
+                key={`cit-${idx}`}
+                style={[styles.listItem, idx > 0 && styles.listItemBorder]}
+                onPress={async () => {
+                  try {
+                    const supported = await Linking.canOpenURL(citation.url);
+                    if (supported) {
+                      await Linking.openURL(citation.url);
+                    } else {
+                      console.warn(`Cannot open URL: ${citation.url}`);
+                    }
+                  } catch (error) {
+                    console.error('An error occurred trying to open the URL:', error);
+                  }
+                }}
+              >
+                <View style={styles.bulletPoint}>
+                  <Ionicons name="open-outline" size={16} color={theme.colors.primary} />
+                </View>
+                <Text style={[styles.bodyText, { color: theme.colors.primary, textDecorationLine: 'underline', flex: 1 }]} numberOfLines={1}>
+                  {citation.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Card>
+          <Spacer size={28} />
         </>
       ) : null}
 

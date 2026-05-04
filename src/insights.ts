@@ -5,6 +5,7 @@ export type ApiInsights = {
   findings: string[];
   possible_conditions: string[];
   possible_symptoms: string[];
+  references?: { title: string; url: string }[];
   confidence_score: number;
 };
 
