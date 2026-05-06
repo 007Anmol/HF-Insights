@@ -2,6 +2,7 @@
 export type ApiInsights = {
   xray_type: string;
   source: string;
+  attention_level?: string;
   findings: string[];
   possible_conditions: string[];
   possible_symptoms: string[];
@@ -113,6 +114,7 @@ export async function generateInsightsFromImage(uri: string, language?: 'en' | '
       title: 'Simplified Health Insights',
       xray_type: String(data?.xray_type || 'unknown'),
       source: String(data?.source || 'image'),
+      attention_level: data?.attention_level,
       findings: safeList(data?.findings),
       possible_conditions: safeList(data?.possible_conditions),
       possible_symptoms: safeList(data?.possible_symptoms),
@@ -137,6 +139,7 @@ export async function generateInsightsFromImage(uri: string, language?: 'en' | '
           title: 'Simplified Health Insights',
           xray_type: String(retried?.xray_type || 'unknown'),
           source: String(retried?.source || 'image'),
+          attention_level: retried?.attention_level,
           findings: safeList(retried?.findings),
           possible_conditions: safeList(retried?.possible_conditions),
           possible_symptoms: safeList(retried?.possible_symptoms),

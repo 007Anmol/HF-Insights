@@ -53,6 +53,7 @@ export default function ScanResult() {
   }
 
   const { insights } = scan;
+  const attention_level = (insights as any).attention_level as string | undefined;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
@@ -88,6 +89,33 @@ export default function ScanResult() {
               </Text>
             </View>
           </View>
+          {!!attention_level && (
+            <>
+              <Spacer size={16} />
+              <View style={[
+                styles.typeBadge, 
+                { backgroundColor: attention_level.includes('Requires') || attention_level.includes('ध्यान') ? '#FEE2E2' : 
+                                  attention_level.includes('Monitor') || attention_level.includes('निगरानी') ? '#FEF3C7' : '#DCFCE7' }
+              ]}>
+                <Ionicons 
+                  name={attention_level.includes('Requires') || attention_level.includes('ध्यान') ? 'warning' : 
+                        attention_level.includes('Monitor') || attention_level.includes('निगरानी') ? 'eye' : 'checkmark-circle'} 
+                  size={16} 
+                  color={attention_level.includes('Requires') || attention_level.includes('ध्यान') ? '#DC2626' : 
+                         attention_level.includes('Monitor') || attention_level.includes('निगरानी') ? '#D97706' : '#16A34A'} 
+                  style={{ marginRight: 6 }} 
+                />
+                <Text style={[
+                  styles.typeText,
+                  { color: attention_level.includes('Requires') || attention_level.includes('ध्यान') ? '#DC2626' : 
+                           attention_level.includes('Monitor') || attention_level.includes('निगरानी') ? '#D97706' : '#16A34A' }
+                ]}>
+                  {attention_level}
+                </Text>
+              </View>
+            </>
+          )}
+
           {!!insights.xray_type && (
             <>
               <Spacer size={12} />

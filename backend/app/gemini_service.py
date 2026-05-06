@@ -11,13 +11,21 @@ def build_prompt(language="en", is_text_report=False):
         language_rule = (
             "Respond only in simple, everyday Hindi. "
             "Medical terms ko simple shabdon me samjhao. "
-            "Aam aadmi ko samajh aaye aisi bhasha ka use karo."
+            "Aam aadmi ko samajh aaye aisi bhasha ka use karo.\n"
+            "For 'attention_level', you MUST use EXACTLY one of these three depending on severity:\n"
+            "- 'कोई बड़ी चिंता नहीं' (No Major Concern Detected)\n"
+            "- 'आगे निगरानी करें' (Monitor Further)\n"
+            "- 'ध्यान देने की आवश्यकता' (Requires Attention)"
         )
     else:
         language_rule = (
             "Respond only in simple English. "
             "Explain medical terms in easy, everyday language. "
-            "Use words a non-medical person can understand."
+            "Use words a non-medical person can understand.\n"
+            "For 'attention_level', you MUST use EXACTLY one of these three based on severity:\n"
+            "- 'No Major Concern Detected'\n"
+            "- 'Monitor Further'\n"
+            "- 'Requires Attention'"
         )
 
     if is_text_report:
@@ -67,6 +75,7 @@ OUTPUT FORMAT:
 {{
     "xray_type": "chest | limb | dental | spine | unknown",
     "source": "{source_type}",
+    "attention_level": "Category of attention required",
     "findings": [
         "Simple description of what is visible in the image or report"
     ],
@@ -104,6 +113,7 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
         return {
             "xray_type": "unknown",
             "source": "unknown",
+            "attention_level": "No Major Concern Detected" if language != "hi" else "कोई बड़ी चिंता नहीं",
             "findings": ["No image or report provided"],
             "possible_conditions": [],
             "possible_symptoms": [],
@@ -180,6 +190,7 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
     return {
         "xray_type": "unknown",
         "source": source_type_for_error,
+        "attention_level": "Monitor Further" if language != "hi" else "आगे निगरानी करें",
         "findings": [summary or "Unable to generate a clear explanation"],
         "possible_conditions": [],
         "possible_symptoms": [],
