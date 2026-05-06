@@ -21,6 +21,9 @@ def _clean_env_value(key_name: str) -> str | None:
 def get_gemini_api_key():
     return _clean_env_value("GEMINI_API_KEY")
 
+def get_openai_api_key():
+    return _clean_env_value("OPENAI_API_KEY")
+
 
 def get_supabase_url():
     return _clean_env_value("SUPABASE_URL")

@@ -4,6 +4,7 @@ load_dotenv()
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from app import gemini_service
+from app import openai_service
 from app import config
 from PyPDF2 import PdfReader
 from urllib import request as urlrequest, error as urlerror
@@ -156,10 +157,22 @@ async def analyze_image(
 
     try:
         image_bytes = await file.read()
-        return gemini_service.analyze_xray_image(
-            image_bytes=image_bytes,
-            language=language
-        )
+        try:
+            return gemini_service.analyze_xray_image(
+                image_bytes=image_bytes,
+                language=language
+            )
+        except Exception as gemini_err:
+            print(f"Gemini failed: {gemini_err}. Falling back to OpenAI.")
+            if not config.get_openai_api_key():
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="GEMINI and OPENAI_API_KEY not set or both failed"
+                )
+            return openai_service.analyze_xray_image(
+                image_bytes=image_bytes,
+                language=language
+            )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -204,10 +217,22 @@ async def analyze_report_pdf(
                 detail="Unable to extract text from PDF"
             )
 
-        return gemini_service.analyze_text_report(
-            report_text=report_text,
-            language=language
-        )
+        try:
+            return gemini_service.analyze_text_report(
+                report_text=report_text,
+                language=language
+            )
+        except Exception as gemini_err:
+            print(f"Gemini failed: {gemini_err}. Falling back to OpenAI.")
+            if not config.get_openai_api_key():
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="GEMINI and OPENAI_API_KEY not set or both failed"
+                )
+            return openai_service.analyze_text_report(
+                report_text=report_text,
+                language=language
+            )
 
     except HTTPException:
         raise

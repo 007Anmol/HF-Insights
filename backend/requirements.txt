@@ -5,3 +5,4 @@ google-genai
 python-multipart
 python-dotenv
 PyPDF2
+openai
