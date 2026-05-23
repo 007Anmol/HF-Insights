@@ -17,6 +17,7 @@ import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme';
 import Constants from 'expo-constants';
+import { preprocessImage } from '../../src/lib/imageProcessor';
 
 export default function NewScan() {
   const router = useRouter();
@@ -37,7 +38,14 @@ export default function NewScan() {
       allowsEditing: false,
     });
     if (!res.canceled && res.assets?.length) {
-      setUri(res.assets[0].uri);
+      try {
+        const asset = res.assets[0];
+        let originalName = asset.fileName || asset.uri.split('/').pop() || 'image.jpg';
+        const convertedUri = await preprocessImage(asset.uri, originalName);
+        setUri(convertedUri);
+      } catch (err: any) {
+        Toast.show({ type: 'error', text1: 'Image Processing Failed', text2: err.message || 'Could not process the selected image.' });
+      }
     }
   };
 
@@ -52,7 +60,14 @@ export default function NewScan() {
       allowsEditing: false,
     });
     if (!res.canceled && res.assets?.length) {
-      setUri(res.assets[0].uri);
+      try {
+        const asset = res.assets[0];
+        let originalName = asset.fileName || 'camera_image.jpg';
+        const convertedUri = await preprocessImage(asset.uri, originalName);
+        setUri(convertedUri);
+      } catch (err: any) {
+        Toast.show({ type: 'error', text1: 'Image Processing Failed', text2: err.message || 'Could not process the captured image.' });
+      }
     }
   };
 
@@ -136,7 +151,7 @@ export default function NewScan() {
     }
   }
 
-  const formatChips = ['JPG', 'PNG', 'PDF'];
+  const formatChips = ['JPG', 'PNG', 'HEIC', 'PDF'];
 
   return (
     <>
