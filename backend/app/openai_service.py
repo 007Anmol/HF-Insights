@@ -90,39 +90,18 @@ OUTPUT FORMAT:
 }}
 """
 
+import re
+
 def _extract_json(text: str):
-    s = text.strip()
-    if s.startswith("```"):
-        end_idx = s.find("```", 3)
-        if end_idx != -1:
-            s = s[3:end_idx]
-            if s.lower().startswith("json\n"):
-                s = s.split("\n", 1)[1]
-            s = s.strip()
-    start = s.find("{")
-    if start == -1:
+    text = text.strip()
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
         try:
-            return json.loads(s)
+            return json.loads(match.group(0))
         except Exception:
-            return None
-    depth = 0
-    end = None
-    for i, ch in enumerate(s[start:], start=start):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                end = i + 1
-                break
-    if end is not None:
-        candidate = s[start:end]
-        try:
-            return json.loads(candidate)
-        except Exception:
-            return None
+            pass
     try:
-        return json.loads(s)
+        return json.loads(text)
     except Exception:
         return None
 
@@ -182,7 +161,8 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
             model=model_name,
             messages=messages,
             temperature=0.0,
-            max_tokens=800
+            max_tokens=2000,
+            response_format={ "type": "json_object" }
         )
         raw_text = response.choices[0].message.content or ""
     except Exception as e:
