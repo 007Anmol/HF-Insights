@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.42.0",
     "expo": "~54.0.33",
     "expo-build-properties": "^1.0.10",
+    "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
     "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.10",

@@ -74,14 +74,17 @@ export function setInsightsLanguage(lang: 'en' | 'hi') {
   currentLanguage = lang;
 }
 
-export async function generateInsightsFromImage(uri: string, language?: 'en' | 'hi'): Promise<Insights> {
-  const filename = 'scan.jpg';
-  const mime = uri?.toLowerCase()?.endsWith('.png') ? 'image/png' : 'image/jpeg';
+async function _runAnalyzeWithEndpoint(
+  endpointPath: string,
+  uri: string,
+  filename: string,
+  mime: string,
+  language?: 'en' | 'hi'
+): Promise<Insights> {
   const lang = (language ?? currentLanguage) || 'en';
 
   const buildFormData = () => {
     const form = new FormData();
-    // React Native recommended way: pass { uri, name, type }
     form.append('file', { uri, name: filename, type: mime } as any);
     form.append('language', lang);
     return form;
@@ -89,7 +92,7 @@ export async function generateInsightsFromImage(uri: string, language?: 'en' | '
 
   const runAnalyzeRequest = async () => {
     const res = await fetchWithTimeout(
-      `${BACKEND_URL}/analyze-image?language=${encodeURIComponent(lang)}`,
+      `${BACKEND_URL}${endpointPath}?language=${encodeURIComponent(lang)}`,
       {
         method: 'POST',
         body: buildFormData(),
@@ -108,7 +111,6 @@ export async function generateInsightsFromImage(uri: string, language?: 'en' | '
 
   try {
     const data = await runAnalyzeRequest();
-    // Basic validation/sanitization
     const safeList = (v: any) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
     return {
       title: 'Simplified Health Insights',
@@ -128,7 +130,6 @@ export async function generateInsightsFromImage(uri: string, language?: 'en' | '
     );
 
     if (firstCallCouldBeColdStart) {
-      // Warm backend and retry once to reduce Render cold-start failures.
       await pingBackendHealth(HEALTH_TIMEOUT_MS);
       await delay(2500);
 
@@ -152,6 +153,16 @@ export async function generateInsightsFromImage(uri: string, language?: 'en' | '
 
     throw new Error(getFriendlyAnalysisErrorMessage(firstError, firstError?.statusCode));
   }
+}
+
+export async function generateInsightsFromImage(uri: string, language?: 'en' | 'hi'): Promise<Insights> {
+  const filename = 'scan.jpg';
+  const mime = uri?.toLowerCase()?.endsWith('.png') ? 'image/png' : 'image/jpeg';
+  return _runAnalyzeWithEndpoint('/analyze-image', uri, filename, mime, language);
+}
+
+export async function generateInsightsFromPdf(uri: string, language?: 'en' | 'hi'): Promise<Insights> {
+  return _runAnalyzeWithEndpoint('/analyze-report-pdf', uri, 'report.pdf', 'application/pdf', language);
 }
 
 // Explicit helper with language to avoid stale type issues in some toolchains

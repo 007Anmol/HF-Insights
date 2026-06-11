@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, Pressable, ScrollView } from 'react-nati
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import Toast from 'react-native-toast-message';
 import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
@@ -11,7 +12,7 @@ import { InfoBox } from '../../src/components/InfoBox';
 import { LoadingOverlay } from '../../src/components/LoadingOverlay';
 import { ToggleButton } from '../../src/components/ToggleButton';
 import { useApp } from '../../src/context/AppContext';
-import { generateInsightsFromImage, setInsightsLanguage } from '../../src/insights';
+import { generateInsightsFromImage, generateInsightsFromPdf, setInsightsLanguage } from '../../src/insights';
 import { supabase } from '../../src/supabase';
 import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ export default function NewScan() {
   const router = useRouter();
   const { addScan } = useApp();
   const [uri, setUri] = useState<string | null>(null);
+  const [isPdf, setIsPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
 
@@ -43,6 +45,7 @@ export default function NewScan() {
         let originalName = asset.fileName || asset.uri.split('/').pop() || 'image.jpg';
         const convertedUri = await preprocessImage(asset.uri, originalName);
         setUri(convertedUri);
+        setIsPdf(false);
       } catch (err: any) {
         Toast.show({ type: 'error', text1: 'Image Processing Failed', text2: err.message || 'Could not process the selected image.' });
       }
@@ -65,9 +68,26 @@ export default function NewScan() {
         let originalName = asset.fileName || 'camera_image.jpg';
         const convertedUri = await preprocessImage(asset.uri, originalName);
         setUri(convertedUri);
+        setIsPdf(false);
       } catch (err: any) {
         Toast.show({ type: 'error', text1: 'Image Processing Failed', text2: err.message || 'Could not process the captured image.' });
       }
+    }
+  };
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets?.length) {
+        const asset = result.assets[0];
+        setUri(asset.uri);
+        setIsPdf(true);
+      }
+    } catch (err: any) {
+      Toast.show({ type: 'error', text1: 'Document Picker Failed', text2: err.message || 'Could not select document.' });
     }
   };
 
@@ -97,7 +117,9 @@ export default function NewScan() {
     setIsAnalyzing(true);
     try {
       setInsightsLanguage(language);
-      const insights = await generateInsightsFromImage(uri);
+      const insights = isPdf 
+        ? await generateInsightsFromPdf(uri)
+        : await generateInsightsFromImage(uri);
       const uploaded = await uploadToStorage(uri);
       const clientId = Date.now().toString();
       const persistedId = await addScan({ id: clientId, uri: uploaded.publicUrl, storagePath: uploaded.storagePath, createdAt: Date.now(), insights });
@@ -120,9 +142,18 @@ export default function NewScan() {
       const token = sessionRes.session?.access_token;
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes.user?.id || 'anonymous';
-      const isPng = localUri.toLowerCase().endsWith('.png');
-      const mime = isPng ? 'image/png' : 'image/jpeg';
-      const filename = `scan-${Date.now()}.${isPng ? 'png' : 'jpg'}`;
+      
+      let mime = 'image/jpeg';
+      let extension = 'jpg';
+      if (isPdf) {
+        mime = 'application/pdf';
+        extension = 'pdf';
+      } else if (localUri.toLowerCase().endsWith('.png')) {
+        mime = 'image/png';
+        extension = 'png';
+      }
+      
+      const filename = `scan-${Date.now()}.${extension}`;
       const storagePath = `${userId}/${filename}`;
 
       if (!token) throw new Error('Missing auth token');
@@ -184,7 +215,15 @@ export default function NewScan() {
               style={styles.uploadZoneInner}
             >
               {uri ? (
-                <Image source={{ uri }} style={styles.previewImage} />
+                isPdf ? (
+                  <View style={{ alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+                    <Ionicons name="document-text" size={80} color={theme.colors.primary} />
+                    <Spacer size={16} />
+                    <Text style={{ fontSize: 16, color: theme.colors.text.primary, fontWeight: '500' }}>PDF Document Selected</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri }} style={styles.previewImage} />
+                )
               ) : (
                 <>
                   <LinearGradient
@@ -196,9 +235,9 @@ export default function NewScan() {
                     <Ionicons name="cloud-upload-outline" size={44} color={theme.colors.primary} />
                   </LinearGradient>
                   <Spacer size={20} />
-                  <Text style={styles.uploadTitle}>Tap to Upload</Text>
+                  <Text style={styles.uploadTitle}>Tap to Upload Image</Text>
                   <Spacer size={6} />
-                  <Text style={styles.uploadSubtitle}>or drag and drop your file here</Text>
+                  <Text style={styles.uploadSubtitle}>or select a PDF below</Text>
                   <Spacer size={20} />
                   <View style={styles.formatChips}>
                     {formatChips.map((format) => (
@@ -217,9 +256,9 @@ export default function NewScan() {
           <>
             <Spacer size={16} />
             <Button 
-              title="Change Image" 
+              title={isPdf ? "Change PDF" : "Change Image"} 
               variant="outline" 
-              onPress={pickImage} 
+              onPress={isPdf ? pickDocument : pickImage} 
               fullWidth 
             />
           </>
@@ -238,13 +277,22 @@ export default function NewScan() {
           </View>
           <View style={styles.buttonHalf}>
             <Button 
-              title="Analyze" 
-              onPress={analyze} 
-              disabled={!uri}
+              title="Upload PDF" 
+              onPress={pickDocument} 
+              variant="secondary"
               fullWidth
             />
           </View>
         </View>
+
+        <Spacer size={16} />
+
+        <Button 
+          title="Analyze" 
+          onPress={analyze} 
+          disabled={!uri}
+          fullWidth
+        />
 
         <Spacer size={16} />
 
