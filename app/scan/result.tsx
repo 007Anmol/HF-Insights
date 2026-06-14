@@ -365,8 +365,11 @@ export default function ScanResult() {
                       <Text style={styles.aiDescription}>Generated from the scan insights and supporting medical context.</Text>
                     </View>
                   </View>
-                  <Spacer size={12} />
-                  <InfoBox message={insights.findings?.slice(0, 2).join(' ') || 'X-ray findings and medical references'} />
+                  <View style={styles.aiConfidenceMeter}>
+                    <View style={styles.progressTrack}>
+                      <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(100, Number(sections.ai_confidence || 0)))}%` }]} />
+                    </View>
+                  </View>
                 </View>
               </Card>
               <Spacer size={28} />
@@ -812,17 +815,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   aiCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 7,
+    borderWidth: 6,
     borderColor: theme.colors.primary,
-    marginRight: theme.spacing.md,
+    marginRight: theme.spacing.sm,
   },
   aiPercent: {
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text.primary,
   },
@@ -836,5 +839,8 @@ const styles = StyleSheet.create({
     color: theme.colors.text.primary,
     fontSize: theme.typography.fontSize.sm,
     lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed,
+  },
+  aiConfidenceMeter: {
+    marginTop: theme.spacing.sm,
   },
 });
