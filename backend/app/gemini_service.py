@@ -157,7 +157,6 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
             "temperature": 0.0,
             "max_output_tokens": 2000,
             "response_mime_type": "application/json",
-            "tools": [{"google_search": {}}]
         }
     )
 

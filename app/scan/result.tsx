@@ -26,6 +26,55 @@ const HEALTH_CITATIONS = [
   { title: 'WebMD', url: 'https://www.webmd.com/' },
 ];
 
+const hasSectionContent = (value: any) => Boolean(
+  value && (
+    (Array.isArray(value.recommended_actions) && value.recommended_actions.length > 0) ||
+    (Array.isArray(value.lifestyle_recommendations) && value.lifestyle_recommendations.length > 0) ||
+    (Array.isArray(value.checklist) && value.checklist.length > 0) ||
+    (Array.isArray(value.seek_medical_attention) && value.seek_medical_attention.length > 0) ||
+    typeof value.ai_confidence === 'number' ||
+    Boolean(value.expected_outcome)
+  )
+);
+
+const buildSectionsFromInsights = (insights: any) => {
+  const findings = Array.isArray(insights?.findings) ? insights.findings.filter(Boolean) : [];
+  const conditions = Array.isArray(insights?.possible_conditions) ? insights.possible_conditions.filter(Boolean) : [];
+  const symptoms = Array.isArray(insights?.possible_symptoms) ? insights.possible_symptoms.filter(Boolean) : [];
+  const confidence = typeof insights?.confidence_score === 'number'
+    ? Math.max(0, Math.min(100, Math.round(insights.confidence_score <= 1 ? insights.confidence_score * 100 : insights.confidence_score)))
+    : 0;
+
+  return {
+    recommended_actions: [
+      findings.length > 0 ? {
+        title: 'Review the visible findings',
+        bullets: findings.slice(0, 3),
+      } : null,
+      conditions.length > 0 ? {
+        title: 'Discuss possible associations',
+        bullets: conditions.slice(0, 3),
+      } : null,
+    ].filter(Boolean),
+    lifestyle_recommendations: symptoms.slice(0, 3).map((symptom: string) => ({
+      label: symptom,
+      percent: confidence || 60,
+      level: confidence >= 75 ? 'High' : confidence >= 45 ? 'Medium' : 'Low',
+    })),
+    checklist: [
+      ...findings.slice(0, 2).map((item: string) => `Keep note of: ${item}`),
+      ...symptoms.slice(0, 2).map((item: string) => `Watch for changes related to: ${item}`),
+    ].slice(0, 4),
+    seek_medical_attention: symptoms.length > 0
+      ? symptoms.slice(0, 3).map((item: string) => `If ${item.toLowerCase()} becomes severe or persistent`)
+      : ['If symptoms become severe or persistent'],
+    ai_confidence: confidence,
+    expected_outcome: findings.length > 0
+      ? 'These sections are organized from the scan insights while generated recommendations load or retry.'
+      : '',
+  };
+};
+
 const Checklist: React.FC = () => {
   const [items, setItems] = useState([
     { id: 'water', text: 'Drink 2L water today', done: false },
@@ -100,11 +149,13 @@ export default function ScanResult() {
         console.log('generate-sections raw response:', res.status, text);
         if (!res.ok) throw new Error(`Failed to generate sections: ${res.status}`);
         const data = JSON.parse(text || '{}');
-        if (mounted) setSections(data);
+        if (mounted) {
+          setSections(hasSectionContent(data) ? data : buildSectionsFromInsights(insights));
+        }
       } catch (err) {
         console.warn('generate-sections error', err);
         if (mounted) {
-          setSections(null);
+          setSections(buildSectionsFromInsights(insights));
           setSectionsError('Generated sections are unavailable right now. The scan insights below are still available.');
         }
       } finally {
@@ -146,9 +197,33 @@ export default function ScanResult() {
 
       {/* Dynamic generated sections from backend */}
       {loadingSections ? (
-        <Spacer size={16} />
+        <>
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="sparkles-outline" size={20} color={theme.colors.primary} />
+            </LinearGradient>
+            <Text style={styles.sectionTitle}>Generating Sections</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated variant="gradient">
+            <Text style={styles.bodyText}>Preparing personalized sections from this scan's insights...</Text>
+          </Card>
+          <Spacer size={28} />
+        </>
       ) : sections ? (
         <>
+          {sectionsError ? (
+            <>
+              <InfoBox message={sectionsError} />
+              <Spacer size={20} />
+            </>
+          ) : null}
+
           {Array.isArray(sections.recommended_actions) && sections.recommended_actions.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
