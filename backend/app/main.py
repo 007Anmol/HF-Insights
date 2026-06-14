@@ -179,6 +179,43 @@ async def analyze_image(
             detail=str(e)
         )
 
+
+# ============================
+# GENERATE UI SECTIONS FROM INSIGHTS
+# ============================
+@app.post("/generate-sections")
+async def generate_sections(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body")
+
+    insights = body.get("insights")
+    language = body.get("language", "en")
+    if not insights or not isinstance(insights, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'insights' object in request body")
+
+    errors = []
+
+    if config.get_gemini_api_key():
+        try:
+            return gemini_service.generate_structured_sections(insights=insights, language=language)
+        except Exception as gemini_err:
+            print(f"Gemini section generation failed: {gemini_err}. Falling back to OpenAI.")
+            errors.append(f"Gemini: {gemini_err}")
+
+    if config.get_openai_api_key():
+        try:
+            return openai_service.generate_structured_sections(insights=insights, language=language)
+        except Exception as openai_err:
+            errors.append(f"OpenAI: {openai_err}")
+
+    detail = "Unable to generate sections from an LLM"
+    if errors:
+        detail = f"{detail}: {'; '.join(errors)}"
+
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+
 # ============================
 # PDF REPORT ANALYSIS
 # ============================

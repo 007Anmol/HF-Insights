@@ -190,3 +190,161 @@ def analyze_xray_image(image_bytes: bytes, language="en"):
 
 def analyze_text_report(report_text: str, language="en"):
     return analyze_xray(report_text=report_text, language=language)
+
+
+def _to_string_list(value, limit=6):
+    if not isinstance(value, list):
+        return []
+
+    items = []
+    for item in value:
+        if isinstance(item, str):
+            text = item.strip()
+        elif isinstance(item, dict):
+            text = str(item.get("text") or item.get("title") or item.get("label") or "").strip()
+        else:
+            text = str(item).strip()
+
+        if text:
+            items.append(text)
+
+        if len(items) >= limit:
+            break
+
+    return items
+
+
+def _clamp_percent(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0
+
+    if 0 < number <= 1:
+        number *= 100
+
+    return max(0, min(100, round(number)))
+
+
+def normalize_structured_sections(parsed: dict, insights: dict):
+    if not isinstance(parsed, dict):
+        raise ValueError("Structured sections response was not a JSON object")
+
+    recommended_actions = []
+    for item in parsed.get("recommended_actions", []):
+        if isinstance(item, dict):
+            title = str(item.get("title") or item.get("label") or "").strip()
+            bullets = _to_string_list(item.get("bullets"), limit=4)
+        else:
+            title = str(item).strip()
+            bullets = []
+
+        if title:
+            recommended_actions.append({"title": title, "bullets": bullets})
+
+        if len(recommended_actions) >= 6:
+            break
+
+    lifestyle_recommendations = []
+    for item in parsed.get("lifestyle_recommendations", []):
+        if not isinstance(item, dict):
+            continue
+
+        label = str(item.get("label") or item.get("title") or "").strip()
+        if not label:
+            continue
+
+        level = str(item.get("level") or "Medium").strip().title()
+        if level not in ("Low", "Medium", "High"):
+            level = "Medium"
+
+        lifestyle_recommendations.append({
+            "label": label,
+            "percent": _clamp_percent(item.get("percent")),
+            "level": level,
+        })
+
+        if len(lifestyle_recommendations) >= 6:
+            break
+
+    confidence_score = insights.get("confidence_score")
+    fallback_confidence = _clamp_percent(confidence_score)
+
+    return {
+        "recommended_actions": recommended_actions,
+        "lifestyle_recommendations": lifestyle_recommendations,
+        "checklist": _to_string_list(parsed.get("checklist"), limit=6),
+        "seek_medical_attention": _to_string_list(parsed.get("seek_medical_attention"), limit=6),
+        "ai_confidence": _clamp_percent(parsed.get("ai_confidence") if parsed.get("ai_confidence") is not None else fallback_confidence),
+        "expected_outcome": str(parsed.get("expected_outcome") or "").strip(),
+    }
+
+
+def build_structured_sections_messages(insights: dict, language="en"):
+    if language == "hi":
+        language_rule = "Respond only in simple, everyday Hindi."
+    else:
+        language_rule = "Respond only in simple English."
+
+    prompt = f"""
+You are an educational medical imaging assistant creating UI-ready follow-up sections from an already generated X-ray insight JSON.
+
+LANGUAGE RULE:
+{language_rule}
+
+STRICT RULES:
+- Generate content from the provided insights only
+- Do not use canned default recommendations
+- Do not diagnose the patient
+- Do not suggest medication or treatment
+- Keep wording calm, educational, and non-alarming
+- Use concise, plain language suitable for a mobile results page
+- Return a single valid JSON object only
+""".strip()
+
+    user_content = f"Here are the insights from the X-ray analysis:\n{json.dumps(insights, ensure_ascii=False, indent=2)}\n\n"
+    user_content += (
+        "Produce exactly these keys:\n"
+        "- recommended_actions: array of objects {title: string, bullets: [string]}\n"
+        "- lifestyle_recommendations: array of objects {label: string, percent: number from 0 to 100, level: 'Low'|'Medium'|'High'}\n"
+        "- checklist: array of short strings\n"
+        "- seek_medical_attention: array of short strings\n"
+        "- ai_confidence: number from 0 to 100\n"
+        "- expected_outcome: short educational string\n"
+        "Make every list 2-6 items when the insights contain enough detail. Return JSON only."
+    )
+
+    return [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": user_content},
+    ]
+
+
+def generate_structured_sections(insights: dict, language="en"):
+    """Generate UI-friendly sections (recommended actions, lifestyle, checklist, warnings,
+    ai confidence and expected outcome) based on existing insights JSON.
+    Returns a JSON-serializable dict.
+    """
+    api_key = config.get_openai_api_key()
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set")
+
+    client = OpenAI(api_key=api_key)
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=build_structured_sections_messages(insights, language),
+            temperature=0.0,
+            max_tokens=800,
+            response_format={"type": "json_object"}
+        )
+        raw_text = response.choices[0].message.content or ""
+    except Exception as e:
+        raise e
+
+    parsed = _extract_json(raw_text)
+    if parsed is not None:
+        return normalize_structured_sections(parsed, insights)
+
+    raise ValueError("OpenAI returned invalid structured sections JSON")

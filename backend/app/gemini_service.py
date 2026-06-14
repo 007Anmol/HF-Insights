@@ -4,6 +4,7 @@ from PIL import Image
 import io
 from google import genai
 from . import config
+from .openai_service import build_structured_sections_messages, normalize_structured_sections
 
 
 def build_prompt(language="en", is_text_report=False):
@@ -185,3 +186,37 @@ def analyze_xray_image(image_bytes: bytes, language="en"):
 def analyze_text_report(report_text: str, language="en"):
     """Wrapper for text-report-based X-ray analysis"""
     return analyze_xray(report_text=report_text, language=language, model_name=config.TEXT_MODEL_NAME)
+
+
+def generate_structured_sections(insights: dict, language="en"):
+    api_key = config.get_gemini_api_key()
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not set")
+
+    messages = build_structured_sections_messages(insights, language)
+    prompt = "\n\n".join(message["content"] for message in messages)
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=config.TEXT_MODEL_NAME,
+        contents=[prompt],
+        config={
+            "temperature": 0.0,
+            "max_output_tokens": 1200,
+            "response_mime_type": "application/json",
+        }
+    )
+
+    raw_text = (response.text or "").strip()
+
+    match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+    if match:
+        try:
+            return normalize_structured_sections(json.loads(match.group(0)), insights)
+        except Exception:
+            pass
+
+    try:
+        return normalize_structured_sections(json.loads(raw_text), insights)
+    except Exception as exc:
+        raise ValueError("Gemini returned invalid structured sections JSON") from exc
