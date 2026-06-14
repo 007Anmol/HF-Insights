@@ -1,6 +1,6 @@
 import os
 
-IMAGE_MODEL_NAME = "gemini-2.5-flash-image"
+IMAGE_MODEL_NAME = "gemini-2.5-flash"
 TEXT_MODEL_NAME = "gemini-2.5-flash"
 
 

@@ -7,6 +7,21 @@ from . import config
 from .openai_service import build_structured_sections_messages, normalize_structured_sections
 
 
+def _extract_json(text: str):
+    text = (text or "").strip()
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except Exception:
+            pass
+
+    try:
+        return json.loads(text)
+    except Exception:
+        return None
+
+
 def build_prompt(language="en", is_text_report=False):
     if language == "hi":
         language_rule = (
@@ -148,19 +163,6 @@ def analyze_xray(image_bytes: bytes = None, report_text: str = None, language="e
 
     raw_text = (response.text or "").strip()
 
-    def _extract_json(text: str):
-        text = text.strip()
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group(0))
-            except Exception:
-                pass
-        try:
-            return json.loads(text)
-        except Exception:
-            return None
-
     parsed = _extract_json(raw_text)
     if parsed is not None:
         return parsed
@@ -209,14 +211,9 @@ def generate_structured_sections(insights: dict, language="en"):
 
     raw_text = (response.text or "").strip()
 
-    match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-    if match:
-        try:
-            return normalize_structured_sections(json.loads(match.group(0)), insights)
-        except Exception:
-            pass
+    parsed = _extract_json(raw_text)
+    if parsed is None:
+        snippet = raw_text[:300].replace("\n", " ") or "empty response"
+        raise ValueError(f"Gemini returned invalid structured sections JSON: {snippet}")
 
-    try:
-        return normalize_structured_sections(json.loads(raw_text), insights)
-    except Exception as exc:
-        raise ValueError("Gemini returned invalid structured sections JSON") from exc
+    return normalize_structured_sections(parsed, insights)
