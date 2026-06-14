@@ -355,16 +355,18 @@ export default function ScanResult() {
               </View>
               <Spacer size={12} />
               <Card elevated variant="gradient">
-                <View style={styles.aiConfidenceRow}>
-                  <View style={styles.aiCircle}>
-                    <Text style={styles.aiPercent}>{sections.ai_confidence}%</Text>
-                    <Text style={styles.aiLabel}>Confidence Level</Text>
+                <View style={styles.aiConfidenceContent}>
+                  <View style={styles.aiConfidenceSummary}>
+                    <View style={styles.aiCircle}>
+                      <Text style={styles.aiPercent}>{sections.ai_confidence}%</Text>
+                    </View>
+                    <View style={styles.aiConfidenceTextGroup}>
+                      <Text style={styles.aiLabel}>Confidence Level</Text>
+                      <Text style={styles.aiDescription}>Generated from the scan insights and supporting medical context.</Text>
+                    </View>
                   </View>
-                  <View style={styles.aiConfidenceContent}>
-                    <Text style={styles.bodyText}>Generated from the scan insights and supporting medical context.</Text>
-                    <Spacer size={8} />
-                    <InfoBox message={insights.findings?.slice(0, 3).join(', ') || 'X-ray findings and medical references'} />
-                  </View>
+                  <Spacer size={12} />
+                  <InfoBox message={insights.findings?.slice(0, 2).join(' ') || 'X-ray findings and medical references'} />
                 </View>
               </Card>
               <Spacer size={28} />
@@ -798,35 +800,41 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-  aiConfidenceRow: {
+  aiConfidenceSummary: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
   },
   aiConfidenceContent: {
+    minWidth: 0,
+  },
+  aiConfidenceTextGroup: {
     flex: 1,
-    flexBasis: 180,
     minWidth: 0,
   },
   aiCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 110 / 2,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 10,
+    borderWidth: 7,
     borderColor: theme.colors.primary,
     marginRight: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
   },
   aiPercent: {
-    fontSize: theme.typography.fontSize['2xl'],
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text.primary,
   },
   aiLabel: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.text.secondary,
-    textAlign: 'center',
+    fontWeight: theme.typography.fontWeight.semibold,
+    marginBottom: 4,
+  },
+  aiDescription: {
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.fontSize.sm,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed,
   },
 });
