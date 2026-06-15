@@ -11,6 +11,12 @@ backend/.env
 **/__pycache__/
 backend/.venv
 
+# Release credentials
+google-play-key.json
+*.jks
+*.keystore
+android/keystore.properties
+
 # Native build outputs (must not be uploaded to EAS)
 android/.gradle/
 android/build/

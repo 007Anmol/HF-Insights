@@ -81,6 +81,17 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def releaseStoreFile = keystoreProperties['MYAPP_UPLOAD_STORE_FILE'] ?: findProperty('MYAPP_UPLOAD_STORE_FILE') ?: System.getenv('MYAPP_UPLOAD_STORE_FILE')
+def releaseStorePassword = keystoreProperties['MYAPP_UPLOAD_STORE_PASSWORD'] ?: findProperty('MYAPP_UPLOAD_STORE_PASSWORD') ?: System.getenv('MYAPP_UPLOAD_STORE_PASSWORD')
+def releaseKeyAlias = keystoreProperties['MYAPP_UPLOAD_KEY_ALIAS'] ?: findProperty('MYAPP_UPLOAD_KEY_ALIAS') ?: System.getenv('MYAPP_UPLOAD_KEY_ALIAS')
+def releaseKeyPassword = keystoreProperties['MYAPP_UPLOAD_KEY_PASSWORD'] ?: findProperty('MYAPP_UPLOAD_KEY_PASSWORD') ?: System.getenv('MYAPP_UPLOAD_KEY_PASSWORD')
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -92,8 +103,8 @@ android {
         applicationId 'com.anmol30.hfinsights'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "1.0.1"
+        versionCode 11
+        versionName "1.0.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -104,15 +115,28 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword) {
+                def resolvedReleaseStoreFile = file(releaseStoreFile)
+                if (!resolvedReleaseStoreFile.isAbsolute() && !resolvedReleaseStoreFile.exists()) {
+                    resolvedReleaseStoreFile = rootProject.file(releaseStoreFile)
+                }
+                if (!resolvedReleaseStoreFile.exists()) {
+                    resolvedReleaseStoreFile = new File(projectRoot, releaseStoreFile)
+                }
+                storeFile resolvedReleaseStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
