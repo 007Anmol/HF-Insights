@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme';
 import { InfoBox } from '../../src/components/InfoBox';
 import ResultsLayout from '../../src/components/ResultsLayout';
+import { ReportWhatsNext } from '../../src/components/ReportWhatsNext';
 import { BACKEND_URL } from '../../src/insights';
 import { useEffect } from 'react';
 
@@ -561,22 +562,15 @@ export default function ScanResult() {
         </>
       ) : null}
 
-      <Spacer size={40} />
+      <Spacer size={32} />
 
-      <View style={styles.actionButtons}>
-        <Button 
-          title="Back to Dashboard" 
-          onPress={() => router.replace('/dashboard')} 
-          fullWidth 
-        />
-        <Spacer size={12} />
-        <Button 
-          title="New Scan" 
-          variant="outline" 
-          onPress={() => router.push('/scan/new')} 
-          fullWidth 
-        />
-      </View>
+      <ReportWhatsNext
+        title={insights.title}
+        createdAt={scan.createdAt}
+        insights={insights}
+        onAnalyzeAnother={() => router.push('/scan/new')}
+        onReturnDashboard={() => router.replace('/dashboard')}
+      />
       </ResultsLayout>
     </ScrollView>
   );
@@ -709,9 +703,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: theme.colors.primary,
-  },
-  actionButtons: {
-    width: '100%',
   },
   errorContainer: {
     flex: 1,
