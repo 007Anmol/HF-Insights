@@ -48,11 +48,11 @@ const buildSectionsFromInsights = (insights: any) => {
   return {
     recommended_actions: [
       findings.length > 0 ? {
-        title: 'Review the visible findings',
+        title: 'Review image observations',
         bullets: findings.slice(0, 3),
       } : null,
       conditions.length > 0 ? {
-        title: 'Discuss possible associations',
+        title: 'Discuss patterns with your doctor',
         bullets: conditions.slice(0, 3),
       } : null,
     ].filter(Boolean),
@@ -194,6 +194,12 @@ export default function ScanResult() {
         confidenceScore={insights.confidence_score}
         createdAt={scan.createdAt}
       >
+
+      <InfoBox
+        type="warning"
+        message="HF Insights provides educational insights only. This is not a medical diagnosis. Always consult a healthcare professional for medical advice."
+      />
+      <Spacer size={24} />
 
       {/* Dynamic generated sections from backend */}
       {loadingSections ? (
@@ -387,7 +393,7 @@ export default function ScanResult() {
                 >
                   <Ionicons name="trending-up-outline" size={20} color={theme.colors.success} />
                 </LinearGradient>
-                <Text style={styles.sectionTitle}>Expected Outcome</Text>
+                <Text style={styles.sectionTitle}>General Information</Text>
               </View>
               <Spacer size={12} />
               <Card elevated variant="gradient">
@@ -415,7 +421,7 @@ export default function ScanResult() {
             >
               <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
             </LinearGradient>
-            <Text style={styles.sectionTitle}>Findings</Text>
+            <Text style={styles.sectionTitle}>Image Observations</Text>
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
@@ -462,7 +468,7 @@ export default function ScanResult() {
             >
               <Ionicons name="clipboard-outline" size={20} color={theme.colors.secondary} />
             </LinearGradient>
-            <Text style={styles.sectionTitle}>Possible Conditions</Text>
+            <Text style={styles.sectionTitle}>Patterns the AI Detected</Text>
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
