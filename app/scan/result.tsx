@@ -302,13 +302,8 @@ export default function ScanResult() {
         xrayType={insights.xray_type}
         confidenceScore={insights.confidence_score}
         createdAt={scan.createdAt}
+        disclaimer="HF Insights provides educational insights only. This is not a medical diagnosis. Always consult a healthcare professional for medical advice."
       >
-
-      <InfoBox
-        type="warning"
-        message="HF Insights provides educational insights only. This is not a medical diagnosis. Always consult a healthcare professional for medical advice."
-      />
-      <Spacer size={24} />
 
       {renderPrimaryInsights()}
 
