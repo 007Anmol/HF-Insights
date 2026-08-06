@@ -185,6 +185,115 @@ export default function ScanResult() {
     );
   }
 
+  const renderPrimaryInsights = () => (
+    <>
+      {insights.findings?.length ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
+            </LinearGradient>
+            <Text style={styles.sectionTitle}>Image Observations</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated variant="gradient">
+            {insights.findings.map((item, idx) => (
+              <View key={`finding-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
+                <View style={styles.bulletPoint}>
+                  <View style={styles.bulletDot} />
+                </View>
+                <Text style={styles.bodyText}>{item}</Text>
+              </View>
+            ))}
+          </Card>
+        </>
+      ) : insights.summary ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
+            </LinearGradient>
+            <Text style={styles.sectionTitle}>Summary</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated variant="gradient">
+            <Text style={styles.bodyText}>{insights.summary}</Text>
+          </Card>
+        </>
+      ) : null}
+
+      {insights.possible_conditions?.length ? (
+        <>
+          <Spacer size={28} />
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={['#ECFDF5', '#D1FAE5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="clipboard-outline" size={20} color={theme.colors.secondary} />
+            </LinearGradient>
+            <Text style={styles.sectionTitle}>Patterns the AI Detected</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated variant="gradient">
+            {insights.possible_conditions.map((r, idx) => (
+              <View key={`cond-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
+                <View style={styles.bulletPoint}>
+                  <Ionicons name="checkmark-circle" size={18} color={theme.colors.secondary} />
+                </View>
+                <Text style={styles.bodyText}>{r}</Text>
+              </View>
+            ))}
+          </Card>
+        </>
+      ) : null}
+
+      {insights.possible_symptoms?.length ? (
+        <>
+          <Spacer size={28} />
+          <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={['#EFF6FF', '#DBEAFE']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconBg}
+            >
+              <Ionicons name="medkit-outline" size={20} color={theme.colors.info} />
+            </LinearGradient>
+            <Text style={styles.sectionTitle}>Possible Symptoms</Text>
+          </View>
+          <Spacer size={12} />
+          <Card elevated variant="gradient">
+            {insights.possible_symptoms.map((t, idx) => (
+              <View key={`sym-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
+                <View style={styles.bulletPoint}>
+                  <Ionicons name="heart-outline" size={16} color={theme.colors.info} />
+                </View>
+                <Text style={styles.bodyText}>{t}</Text>
+              </View>
+            ))}
+          </Card>
+        </>
+      ) : null}
+
+      {(insights.findings?.length || insights.summary || insights.possible_conditions?.length || insights.possible_symptoms?.length) && (
+        <Spacer size={28} />
+      )}
+    </>
+  );
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
       <ResultsLayout
@@ -200,6 +309,8 @@ export default function ScanResult() {
         message="HF Insights provides educational insights only. This is not a medical diagnosis. Always consult a healthcare professional for medical advice."
       />
       <Spacer size={24} />
+
+      {renderPrimaryInsights()}
 
       {/* Dynamic generated sections from backend */}
       {loadingSections ? (
@@ -409,111 +520,6 @@ export default function ScanResult() {
           <Spacer size={28} />
         </>
       ) : null}
-
-      {insights.findings?.length ? (
-        <>
-          <View style={styles.sectionHeader}>
-            <LinearGradient
-              colors={['#EFF6FF', '#DBEAFE']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.sectionIconBg}
-            >
-              <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
-            </LinearGradient>
-            <Text style={styles.sectionTitle}>Image Observations</Text>
-          </View>
-          <Spacer size={12} />
-          <Card elevated variant="gradient">
-            {insights.findings.map((item, idx) => (
-              <View key={`finding-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
-                <View style={styles.bulletPoint}>
-                  <View style={styles.bulletDot} />
-                </View>
-                <Text style={styles.bodyText}>{item}</Text>
-              </View>
-            ))}
-          </Card>
-        </>
-      ) : insights.summary ? (
-        <>
-          <View style={styles.sectionHeader}>
-            <LinearGradient
-              colors={['#EFF6FF', '#DBEAFE']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.sectionIconBg}
-            >
-              <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
-            </LinearGradient>
-            <Text style={styles.sectionTitle}>Summary</Text>
-          </View>
-          <Spacer size={12} />
-          <Card elevated variant="gradient">
-            <Text style={styles.bodyText}>{insights.summary}</Text>
-          </Card>
-        </>
-      ) : null}
-
-      <Spacer size={28} />
-
-      {insights.possible_conditions?.length ? (
-        <>
-          <View style={styles.sectionHeader}>
-            <LinearGradient
-              colors={['#ECFDF5', '#D1FAE5']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.sectionIconBg}
-            >
-              <Ionicons name="clipboard-outline" size={20} color={theme.colors.secondary} />
-            </LinearGradient>
-            <Text style={styles.sectionTitle}>Patterns the AI Detected</Text>
-          </View>
-          <Spacer size={12} />
-          <Card elevated variant="gradient">
-            {insights.possible_conditions.map((r, idx) => (
-              <View key={`cond-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
-                <View style={styles.bulletPoint}>
-                  <Ionicons name="checkmark-circle" size={18} color={theme.colors.secondary} />
-                </View>
-                <Text style={styles.bodyText}>{r}</Text>
-              </View>
-            ))}
-          </Card>
-        </>
-      ) : null}
-
-      <Spacer size={28} />
-
-      {insights.possible_symptoms?.length ? (
-        <>
-          <View style={styles.sectionHeader}>
-            <LinearGradient
-              colors={['#EFF6FF', '#DBEAFE']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.sectionIconBg}
-            >
-              <Ionicons name="medkit-outline" size={20} color={theme.colors.info} />
-            </LinearGradient>
-            <Text style={styles.sectionTitle}>Possible Symptoms</Text>
-          </View>
-          <Spacer size={12} />
-          <Card elevated variant="gradient">
-            {insights.possible_symptoms.map((t, idx) => (
-              <View key={`sym-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
-                <View style={styles.bulletPoint}>
-                  <Ionicons name="heart-outline" size={16} color={theme.colors.info} />
-                </View>
-                <Text style={styles.bodyText}>{t}</Text>
-              </View>
-            ))}
-          </Card>
-        </>
-      ) : null}
-
-      <Spacer size={28} />
 
       {randomCitations.length > 0 ? (
         <>
