@@ -6,6 +6,7 @@ import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
 import { Spacer } from '../../src/components/Spacer';
 import { LoadingOverlay } from '../../src/components/LoadingOverlay';
+import { DashboardOnboarding } from '../../src/components/DashboardOnboarding';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { theme } from '../../src/theme';
@@ -155,23 +156,7 @@ export default function Dashboard() {
         )}
         ItemSeparatorComponent={() => <Spacer size={16} />}
         ListEmptyComponent={
-          <Card>
-            <View style={styles.emptyState}>
-              <Ionicons name="document-outline" size={64} color={theme.colors.text.tertiary} />
-              <Spacer size={16} />
-              <Text style={styles.emptyTitle}>No scans yet</Text>
-              <Spacer size={8} />
-              <Text style={styles.emptySubtitle}>
-                Start by uploading your first medical scan to get insights
-              </Text>
-              <Spacer size={24} />
-              <Button 
-                title="Upload First Scan" 
-                onPress={() => router.push('/scan/new')}
-                variant="outline"
-              />
-            </View>
-          </Card>
+          <DashboardOnboarding userName={user?.name} />
         }
       />
 
@@ -291,20 +276,5 @@ const styles = StyleSheet.create({
     color: theme.colors.primary, 
     fontWeight: theme.typography.fontWeight.semibold,
     fontSize: theme.typography.fontSize.sm,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: theme.spacing['3xl'],
-  },
-  emptyTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text.primary,
-  },
-  emptySubtitle: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.text.secondary,
-    textAlign: 'center',
-    paddingHorizontal: theme.spacing.lg,
   },
 });
