@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme';
 import Constants from 'expo-constants';
 import { preprocessImage } from '../../src/lib/imageProcessor';
+import { PhotoGuidanceCard } from '../../src/components/PhotoGuidanceCard';
 
 export default function NewScan() {
   const router = useRouter();
@@ -204,7 +205,14 @@ export default function NewScan() {
           </Text>
         </View>
 
-        <Spacer size={32} />
+        <Spacer size={24} />
+
+        {!uri && (
+          <>
+            <PhotoGuidanceCard />
+            <Spacer size={24} />
+          </>
+        )}
 
         <Card elevated>
           <Pressable onPress={pickImage} style={styles.uploadZone}>
@@ -251,6 +259,16 @@ export default function NewScan() {
             </LinearGradient>
           </Pressable>
         </Card>
+
+        {uri && !isPdf && (
+          <>
+            <Spacer size={16} />
+            <InfoBox
+              type="warning"
+              message="Before analyzing: is the full X-ray visible, straight, and free of glare?"
+            />
+          </>
+        )}
 
         {uri && (
           <>
