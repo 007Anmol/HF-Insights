@@ -10,10 +10,11 @@ type Props = {
   xrayType?: string;
   confidenceScore?: number;
   createdAt?: string | number | Date;
+  disclaimer?: string;
   children?: React.ReactNode;
 };
 
-const ResultsLayout: React.FC<Props> = ({ title, attentionLevel, xrayType, confidenceScore, createdAt, children }) => {
+const ResultsLayout: React.FC<Props> = ({ title, attentionLevel, xrayType, confidenceScore, createdAt, disclaimer, children }) => {
   return (
     <>
       <LinearGradient
@@ -60,6 +61,13 @@ const ResultsLayout: React.FC<Props> = ({ title, attentionLevel, xrayType, confi
           {!!xrayType && (
             <View style={styles.typeBadge}>
               <Text style={styles.typeText}>{xrayType}</Text>
+            </View>
+          )}
+
+          {!!disclaimer && (
+            <View style={styles.disclaimerBox}>
+              <Ionicons name="information-circle" size={18} color={theme.colors.warning} />
+              <Text style={styles.disclaimerText}>{disclaimer}</Text>
             </View>
           )}
         </View>
@@ -149,6 +157,25 @@ const styles = StyleSheet.create({
   contentSection: {
     paddingHorizontal: theme.layout.screenPadding,
     paddingTop: theme.spacing.lg,
+  },
+  disclaimerBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.lg,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    width: '100%',
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text.primary,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed,
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });
 
