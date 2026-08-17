@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anmol30.hfinsights",
-      "buildNumber": "3",
+      "buildNumber": "20",
       "infoPlist": {
         "NSCameraUsageDescription": "HF Insights uses your camera to capture X-ray images for AI-based analysis and provide simplified health insights.",
         "NSPhotoLibraryUsageDescription": "HF Insights accesses your photo library so you can upload X-ray images for analysis and receive easy-to-understand medical insights."
