@@ -144,41 +144,68 @@ async def delete_account(request: Request):
 # ============================
 # IMAGE ANALYSIS
 # ============================
+# ============================
+# IMAGE ANALYSIS
+# ============================
+
 @app.post("/analyze-image")
 async def analyze_image(
     file: UploadFile = File(...),
     language: str = "en"
 ):
-    if not config.get_gemini_api_key():
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GEMINI_API_KEY not set"
-        )
-
     try:
         image_bytes = await file.read()
+
+        if not image_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Empty image file"
+            )
+
+        # Try Gemini first
         try:
             return gemini_service.analyze_xray_image(
                 image_bytes=image_bytes,
                 language=language
             )
+
         except Exception as gemini_err:
-            print(f"Gemini failed: {gemini_err}. Falling back to OpenAI.")
-            if not config.get_openai_api_key():
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="GEMINI and OPENAI_API_KEY not set or both failed"
-                )
-            return openai_service.analyze_xray_image(
-                image_bytes=image_bytes,
-                language=language
+            print(
+                f"Gemini failed: "
+                f"{type(gemini_err).__name__}: {gemini_err}"
             )
+
+            # Fall back to OpenAI if configured
+            if config.get_openai_api_key():
+                try:
+                    return openai_service.analyze_xray_image(
+                        image_bytes=image_bytes,
+                        language=language
+                    )
+
+                except Exception as openai_err:
+                    print(
+                        f"OpenAI fallback failed: "
+                        f"{type(openai_err).__name__}: {openai_err}"
+                    )
+
+            # Neither service succeeded
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    f"Gemini analysis failed: "
+                    f"{type(gemini_err).__name__}: {gemini_err}"
+                )
+            )
+
+    except HTTPException:
+        raise
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
-
 
 # ============================
 # GENERATE UI SECTIONS FROM INSIGHTS
