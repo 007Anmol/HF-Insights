@@ -243,6 +243,100 @@ Each list should contain at least 2 items where appropriate.
 # ============================================================
 # MAIN GEMINI ANALYSIS
 # ============================================================
+def _normalize_analysis(result):
+    """Normalize Gemini output without changing the analysis content."""
+
+    if not isinstance(result, dict):
+        return result
+
+    # ----------------------------
+    # Normalize X-ray body region
+    # ----------------------------
+    xray_type = str(result.get("xray_type", "")).strip().lower()
+
+    if any(term in xray_type for term in [
+        "hand",
+        "right hand",
+        "left hand",
+        "hand and wrist",
+    ]):
+        result["xray_type"] = "hand"
+
+    elif "wrist" in xray_type:
+        result["xray_type"] = "wrist"
+
+    elif "knee" in xray_type:
+        result["xray_type"] = "knee"
+
+    elif "elbow" in xray_type:
+        result["xray_type"] = "elbow"
+
+    elif "shoulder" in xray_type:
+        result["xray_type"] = "shoulder"
+
+    elif "ankle" in xray_type:
+        result["xray_type"] = "ankle"
+
+    elif "foot" in xray_type:
+        result["xray_type"] = "foot"
+
+    elif "hip" in xray_type:
+        result["xray_type"] = "hip"
+
+    elif "chest" in xray_type:
+        result["xray_type"] = "chest"
+
+    elif "spine" in xray_type:
+        result["xray_type"] = "spine"
+
+    # ----------------------------
+    # Clean reference URLs
+    # ----------------------------
+    references = result.get("references")
+
+    if isinstance(references, list):
+        cleaned_references = []
+
+        for reference in references:
+            if not isinstance(reference, dict):
+                continue
+
+            title = str(reference.get("title", "")).strip()
+            url = str(reference.get("url", "")).strip()
+
+            # Convert Markdown link:
+            # [Title](https://example.com)
+            markdown_match = re.search(
+                r"\]\((https?://[^)]+)\)",
+                url
+            )
+
+            if markdown_match:
+                url = markdown_match.group(1)
+
+            # If URL contains a raw https URL after malformed text,
+            # extract the actual URL.
+            url_match = re.search(
+                r"https?://[^\s\]\)\"']+",
+                url
+            )
+
+            if url_match:
+                url = url_match.group(0)
+
+            # Remove obvious Markdown fragments.
+            url = url.replace("[", "").replace("]", "")
+
+            if title or url:
+                cleaned_references.append({
+                    "title": title,
+                    "url": url,
+                })
+
+        result["references"] = cleaned_references
+
+    return result
+
 
 def analyze_xray(
     image_bytes: bytes = None,
