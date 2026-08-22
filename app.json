@@ -16,10 +16,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anmol30.hfinsights",
-      "buildNumber": "20",
+      "buildNumber": "21",
       "infoPlist": {
         "NSCameraUsageDescription": "HF Insights uses your camera to capture X-ray images for AI-based analysis and provide simplified health insights.",
-        "NSPhotoLibraryUsageDescription": "HF Insights accesses your photo library so you can upload X-ray images for analysis and receive easy-to-understand medical insights."
+        "NSPhotoLibraryUsageDescription": "HF Insights accesses your photo library so you can upload X-ray images for analysis and receive easy-to-understand medical insights.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -59,8 +60,9 @@
       "supabaseStorageBucket": "scans",
       "router": {},
       "eas": {
-        "projectId": "0e5f879c-9180-4370-93b7-7f168c73b3b2"
+        "projectId": "22327e4e-8c03-4d96-9524-04ca923f834f"
       }
-    }
+    },
+    "owner": "ykwani"
   }
 }
