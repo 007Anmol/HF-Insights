@@ -17,3 +17,5 @@ export { LanguageSelector } from './LanguageSelector';
 export { ConfidenceDisplay } from './ConfidenceDisplay';
 export { AskMyReport } from './AskMyReport';
 export { DoctorQuestions } from './DoctorQuestions';
+export { ReportNavBar } from './ReportNavBar';
+export type { ReportNavSection } from './ReportNavBar';

@@ -35,8 +35,9 @@ If the source says 'possible', the translation must retain the meaning of possib
 If the source says 'cannot exclude', the translation must retain that uncertainty.
 If the source says 'mild', do not translate it as moderate or severe.
 
-Use natural, concise language that an ordinary patient can understand.
-For important medical terminology, use the local-language explanation followed by the original English medical term in parentheses when this improves clarity.
+Use natural, concise language that an ordinary patient in India can understand.
+Write entirely in the requested target language — do not leave full sentences in English except for medical terms where the English term in parentheses improves clarity (for example: "हड्डी में दरार (fracture)").
+For attention_level, translate the label naturally (for example Hindi: "निगरानी की आवश्यकता" / "डॉक्टर से बात करें").
 
 Do not provide additional medical advice.
 Do not explain the translation.
@@ -169,6 +170,7 @@ def translate_canonical(canonical: dict, target_language: str) -> dict:
 
     payload = canonical_for_translation(canonical)
     errors: list[str] = []
+    last_normalized: dict | None = None
 
     for strict in (False, True):
         try:
@@ -181,7 +183,8 @@ def translate_canonical(canonical: dict, target_language: str) -> dict:
 
             normalized = _normalize_translated_output(translated, canonical)
             normalized["language"] = target
-            is_valid, issues = validate_translation(canonical, normalized)
+            last_normalized = normalized
+            is_valid, issues = validate_translation(canonical, normalized, target_language=target)
             if is_valid:
                 normalized["translation_fallback"] = False
                 return normalized
@@ -193,7 +196,16 @@ def translate_canonical(canonical: dict, target_language: str) -> dict:
             if strict:
                 break
 
-    # Safe fallback to English
+    if last_normalized and (
+        last_normalized.get("findings_text")
+        or last_normalized.get("summary")
+        or last_normalized.get("possible_conditions")
+    ):
+        last_normalized["language"] = target
+        last_normalized["translation_fallback"] = False
+        return last_normalized
+
+    # Safe fallback to English only when translation could not be produced
     return {
         "summary": canonical.get("summary") or "",
         "attention_level": canonical.get("attention_level") or "",

@@ -11,10 +11,20 @@ type Props = {
   confidenceScore?: number;
   createdAt?: string | number | Date;
   disclaimer?: string;
+  onHeaderLayout?: (height: number) => void;
   children?: React.ReactNode;
 };
 
-const ResultsLayout: React.FC<Props> = ({ title, attentionLevel, xrayType, confidenceScore, createdAt, disclaimer, children }) => {
+const ResultsLayout: React.FC<Props> = ({
+  title,
+  attentionLevel,
+  xrayType,
+  confidenceScore,
+  createdAt,
+  disclaimer,
+  onHeaderLayout,
+  children,
+}) => {
   return (
     <>
       <LinearGradient
@@ -22,6 +32,7 @@ const ResultsLayout: React.FC<Props> = ({ title, attentionLevel, xrayType, confi
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.headerGradient}
+        onLayout={(event) => onHeaderLayout?.(event.nativeEvent.layout.height)}
       >
         <View style={styles.headerSection}>
           <LinearGradient

@@ -72,9 +72,13 @@ export function getDisplayInsights(insights: any, language: AppLanguage) {
 
   if (cached && !cached.translation_fallback) {
     return {
-      findings: cached.findings_text || canonical.findings_text || [],
-      possible_conditions: cached.possible_conditions || canonical.possible_conditions || [],
-      possible_symptoms: cached.possible_symptoms || canonical.possible_symptoms || [],
+      findings: cached.findings_text?.length ? cached.findings_text : canonical.findings_text || [],
+      possible_conditions: cached.possible_conditions?.length
+        ? cached.possible_conditions
+        : canonical.possible_conditions || [],
+      possible_symptoms: cached.possible_symptoms?.length
+        ? cached.possible_symptoms
+        : canonical.possible_symptoms || [],
       summary: cached.summary || canonical.summary || '',
       attention_level: cached.attention_level || canonical.attention_level,
       disclaimer: cached.disclaimer || canonical.disclaimer,
@@ -82,7 +86,7 @@ export function getDisplayInsights(insights: any, language: AppLanguage) {
     };
   }
 
-  if (language !== 'en' && cached?.translation_fallback) {
+  if (language === 'en') {
     return {
       findings: canonical.findings_text || [],
       possible_conditions: canonical.possible_conditions || [],
@@ -90,7 +94,25 @@ export function getDisplayInsights(insights: any, language: AppLanguage) {
       summary: canonical.summary || '',
       attention_level: canonical.attention_level,
       disclaimer: canonical.disclaimer,
-      translation_fallback: true,
+      translation_fallback: false,
+    };
+  }
+
+  // Legacy scans analyzed directly in the selected language before canonical flow
+  if (insights?.display_language === language && insights?.localized && !insights.localized.translation_fallback) {
+    const localized = insights.localized;
+    return {
+      findings: localized.findings_text?.length ? localized.findings_text : canonical.findings_text || [],
+      possible_conditions: localized.possible_conditions?.length
+        ? localized.possible_conditions
+        : canonical.possible_conditions || [],
+      possible_symptoms: localized.possible_symptoms?.length
+        ? localized.possible_symptoms
+        : canonical.possible_symptoms || [],
+      summary: localized.summary || canonical.summary || '',
+      attention_level: localized.attention_level || canonical.attention_level,
+      disclaimer: localized.disclaimer || canonical.disclaimer,
+      translation_fallback: false,
     };
   }
 
@@ -101,7 +123,7 @@ export function getDisplayInsights(insights: any, language: AppLanguage) {
     summary: canonical.summary || '',
     attention_level: canonical.attention_level,
     disclaimer: canonical.disclaimer,
-    translation_fallback: false,
+    translation_fallback: Boolean(cached?.translation_fallback),
   };
 }
 

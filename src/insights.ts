@@ -1,6 +1,24 @@
 import type { AppLanguage } from './types/language';
 import type { CanonicalInsights } from './lib/canonicalInsights';
 import { buildInsightsPayloadFromApi } from './lib/canonicalInsights';
+import {
+  fallbackAskReportAnswer,
+  fallbackDoctorQuestions,
+  isNewApiUnavailable,
+} from './lib/reportFallbacks';
+
+function canonicalForTranslation(canonical: CanonicalInsights) {
+  return {
+    summary: canonical.summary || '',
+    xray_type: canonical.xray_type,
+    attention_level: canonical.attention_level || '',
+    findings_text: canonical.findings_text || [],
+    possible_conditions: canonical.possible_conditions || [],
+    possible_symptoms: canonical.possible_symptoms || [],
+    recommendations: canonical.recommendations || [],
+    disclaimer: canonical.disclaimer || '',
+  };
+}
 
 export type ApiInsights = {
   xray_type: string;
@@ -147,27 +165,75 @@ export async function translateAnalysis(
   canonical: CanonicalInsights,
   language: AppLanguage,
 ): Promise<CanonicalInsights['localized'] & { language: string }> {
-  const res = await fetchWithTimeout(
-    `${BACKEND_URL}/translate-analysis`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ canonical, language }),
-    },
-    API_TIMEOUT_MS,
-  );
-
-  if (!res.ok) {
-    throw new Error('Translation is temporarily unavailable. Showing the original report.');
+  if (language === 'en') {
+    return {
+      summary: canonical.summary || '',
+      attention_level: canonical.attention_level || '',
+      findings_text: canonical.findings_text || [],
+      possible_conditions: canonical.possible_conditions || [],
+      possible_symptoms: canonical.possible_symptoms || [],
+      recommendations: canonical.recommendations || [],
+      disclaimer: canonical.disclaimer || '',
+      language: 'en',
+      translation_fallback: false,
+    };
   }
 
-  return res.json();
+  const payload = { canonical: canonicalForTranslation(canonical), language };
+
+  const runRequest = async () => {
+    const res = await fetchWithTimeout(
+      `${BACKEND_URL}/translate-analysis`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      API_TIMEOUT_MS,
+    );
+    return res;
+  };
+
+  try {
+    let res = await runRequest();
+
+    if (!res.ok && COLD_START_STATUS_CODES.has(res.status)) {
+      await pingBackendHealth(HEALTH_TIMEOUT_MS);
+      await delay(2500);
+      res = await runRequest();
+    }
+
+    if (!res.ok) {
+      if (isNewApiUnavailable(res.status)) {
+        throw new Error('TRANSLATION_API_UNAVAILABLE');
+      }
+      throw new Error('Translation is temporarily unavailable. Showing the original report.');
+    }
+
+    const data = await res.json();
+    return {
+      summary: data.summary || '',
+      attention_level: data.attention_level || canonical.attention_level || '',
+      findings_text: Array.isArray(data.findings_text) ? data.findings_text : canonical.findings_text || [],
+      possible_conditions: Array.isArray(data.possible_conditions) ? data.possible_conditions : canonical.possible_conditions || [],
+      possible_symptoms: Array.isArray(data.possible_symptoms) ? data.possible_symptoms : canonical.possible_symptoms || [],
+      recommendations: Array.isArray(data.recommendations) ? data.recommendations : canonical.recommendations || [],
+      disclaimer: data.disclaimer || canonical.disclaimer || '',
+      language: data.language || language,
+      translation_fallback: Boolean(data.translation_fallback),
+    };
+  } catch (error: any) {
+    if (error?.message === 'TRANSLATION_API_UNAVAILABLE') {
+      throw error;
+    }
+    throw new Error('Translation is temporarily unavailable. Showing the original report.');
+  }
 }
 
 export async function fetchDoctorQuestions(
   canonical: CanonicalInsights,
   language: AppLanguage,
-): Promise<{ questions: string[]; questions_en?: string[]; language: string }> {
+): Promise<{ questions: string[]; questions_en?: string[]; language: string; offline_fallback?: boolean }> {
   const res = await fetchWithTimeout(
     `${BACKEND_URL}/doctor-questions`,
     {
@@ -179,6 +245,10 @@ export async function fetchDoctorQuestions(
   );
 
   if (!res.ok) {
+    if (isNewApiUnavailable(res.status)) {
+      const questions = fallbackDoctorQuestions(canonical);
+      return { questions, questions_en: questions, language, offline_fallback: true };
+    }
     throw new Error('Unable to generate doctor questions right now.');
   }
 
@@ -190,7 +260,7 @@ export async function askReportQuestion(params: {
   question: string;
   language: AppLanguage;
   previousReportSummary?: string;
-}): Promise<{ answer: string; language: string }> {
+}): Promise<{ answer: string; language: string; offline_fallback?: boolean }> {
   const res = await fetchWithTimeout(
     `${BACKEND_URL}/ask-report`,
     {
@@ -202,6 +272,13 @@ export async function askReportQuestion(params: {
   );
 
   if (!res.ok) {
+    if (isNewApiUnavailable(res.status)) {
+      return {
+        answer: fallbackAskReportAnswer(params.canonical, params.question),
+        language: params.language,
+        offline_fallback: true,
+      };
+    }
     throw new Error('Unable to generate an answer right now. Please try again.');
   }
 
