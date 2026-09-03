@@ -1,28 +1,37 @@
-// Insights returned from backend (FASTAPI)
+import type { AppLanguage } from './types/language';
+import type { CanonicalInsights } from './lib/canonicalInsights';
+import { buildInsightsPayloadFromApi } from './lib/canonicalInsights';
+
 export type ApiInsights = {
   xray_type: string;
   source: string;
   attention_level?: string;
-  findings: string[];
+  findings?: string[];
+  findings_text?: string[];
   possible_conditions: string[];
   possible_symptoms: string[];
   references?: { title: string; url: string }[];
-  confidence_score: number;
+  confidence_score?: number;
+  confidence?: CanonicalInsights['confidence'];
+  summary?: string;
+  canonical?: CanonicalInsights;
+  localized?: CanonicalInsights['localized'];
+  display_language?: string;
 };
 
-// Unified type the app stores. Old fields are optional for backward compatibility.
-export type Insights = ApiInsights & {
+export type Insights = ReturnType<typeof buildInsightsPayloadFromApi> & {
   title: string;
-  summary?: string;
-  recommendations?: string[];
   laymanTerms?: { term: string; plain: string }[];
 };
 
-export const BACKEND_URL = 'https://healthfutureinsights.onrender.com';
+export const BACKEND_URL =
+  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_BACKEND_URL) ||
+  'https://healthfutureinsights.onrender.com';
 
 const COLD_START_STATUS_CODES = new Set([502, 503, 504]);
 const ANALYZE_TIMEOUT_MS = 90000;
 const HEALTH_TIMEOUT_MS = 8000;
+const API_TIMEOUT_MS = 45000;
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number) {
   const controller = new AbortController();
@@ -42,14 +51,9 @@ function isColdStartFailure(error: any, statusCode?: number) {
   if (typeof statusCode === 'number' && COLD_START_STATUS_CODES.has(statusCode)) {
     return true;
   }
-
   const errorName = String(error?.name || '').toLowerCase();
   const message = String(error?.message || '').toLowerCase();
-  return (
-    errorName.includes('abort') ||
-    message.includes('aborted') ||
-    message.includes('timeout')
-  );
+  return errorName.includes('abort') || message.includes('aborted') || message.includes('timeout');
 }
 
 export async function pingBackendHealth(timeoutMs = HEALTH_TIMEOUT_MS): Promise<boolean> {
@@ -68,10 +72,14 @@ export function getFriendlyAnalysisErrorMessage(error: any, statusCode?: number)
   return 'Unable to analyze scan right now. Please try again shortly.';
 }
 
-// Call FASTAPI to analyze the image. Falls back with a friendly error.
-let currentLanguage: 'en' | 'hi' = 'en';
-export function setInsightsLanguage(lang: 'en' | 'hi') {
+let currentLanguage: AppLanguage = 'en';
+
+export function setInsightsLanguage(lang: AppLanguage) {
   currentLanguage = lang;
+}
+
+export function getInsightsLanguage(): AppLanguage {
+  return currentLanguage;
 }
 
 async function _runAnalyzeWithEndpoint(
@@ -79,9 +87,9 @@ async function _runAnalyzeWithEndpoint(
   uri: string,
   filename: string,
   mime: string,
-  language?: 'en' | 'hi'
+  language?: AppLanguage,
 ): Promise<Insights> {
-  const lang = (language ?? currentLanguage) || 'en';
+  const lang = language ?? currentLanguage ?? 'en';
 
   const buildFormData = () => {
     const form = new FormData();
@@ -93,11 +101,8 @@ async function _runAnalyzeWithEndpoint(
   const runAnalyzeRequest = async () => {
     const res = await fetchWithTimeout(
       `${BACKEND_URL}${endpointPath}?language=${encodeURIComponent(lang)}`,
-      {
-        method: 'POST',
-        body: buildFormData(),
-      },
-      ANALYZE_TIMEOUT_MS
+      { method: 'POST', body: buildFormData() },
+      ANALYZE_TIMEOUT_MS,
     );
 
     if (!res.ok) {
@@ -111,64 +116,101 @@ async function _runAnalyzeWithEndpoint(
 
   try {
     const data = await runAnalyzeRequest();
-    const safeList = (v: any) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
-    return {
-      title: 'Simplified Health Insights',
-      xray_type: String(data?.xray_type || 'unknown'),
-      source: String(data?.source || 'image'),
-      attention_level: data?.attention_level,
-      findings: safeList(data?.findings),
-      possible_conditions: safeList(data?.possible_conditions),
-      possible_symptoms: safeList(data?.possible_symptoms),
-      confidence_score: typeof data?.confidence_score === 'number' ? data.confidence_score : 0,
-    };
+    return buildInsightsPayloadFromApi(data) as Insights;
   } catch (firstError: any) {
     const firstStatusCode = Number(firstError?.statusCode);
-    const firstCallCouldBeColdStart = isColdStartFailure(
-      firstError,
-      Number.isFinite(firstStatusCode) ? firstStatusCode : undefined
-    );
-
-    if (firstCallCouldBeColdStart) {
+    if (isColdStartFailure(firstError, Number.isFinite(firstStatusCode) ? firstStatusCode : undefined)) {
       await pingBackendHealth(HEALTH_TIMEOUT_MS);
       await delay(2500);
-
       try {
         const retried = await runAnalyzeRequest();
-        const safeList = (v: any) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
-        return {
-          title: 'Simplified Health Insights',
-          xray_type: String(retried?.xray_type || 'unknown'),
-          source: String(retried?.source || 'image'),
-          attention_level: retried?.attention_level,
-          findings: safeList(retried?.findings),
-          possible_conditions: safeList(retried?.possible_conditions),
-          possible_symptoms: safeList(retried?.possible_symptoms),
-          confidence_score: typeof retried?.confidence_score === 'number' ? retried.confidence_score : 0,
-        };
+        return buildInsightsPayloadFromApi(retried) as Insights;
       } catch (retryError: any) {
         throw new Error(getFriendlyAnalysisErrorMessage(retryError, retryError?.statusCode));
       }
     }
-
     throw new Error(getFriendlyAnalysisErrorMessage(firstError, firstError?.statusCode));
   }
 }
 
-export async function generateInsightsFromImage(uri: string, language?: 'en' | 'hi'): Promise<Insights> {
+export async function generateInsightsFromImage(uri: string, language?: AppLanguage): Promise<Insights> {
   const filename = 'scan.jpg';
   const mime = uri?.toLowerCase()?.endsWith('.png') ? 'image/png' : 'image/jpeg';
   return _runAnalyzeWithEndpoint('/analyze-image', uri, filename, mime, language);
 }
 
-export async function generateInsightsFromPdf(uri: string, language?: 'en' | 'hi'): Promise<Insights> {
+export async function generateInsightsFromPdf(uri: string, language?: AppLanguage): Promise<Insights> {
   return _runAnalyzeWithEndpoint('/analyze-report-pdf', uri, 'report.pdf', 'application/pdf', language);
 }
 
-// Explicit helper with language to avoid stale type issues in some toolchains
-export async function generateInsightsFromImageWithLanguage(
-  uri: string,
-  language: 'en' | 'hi'
-): Promise<Insights> {
-  return generateInsightsFromImage(uri, language);
+export async function translateAnalysis(
+  canonical: CanonicalInsights,
+  language: AppLanguage,
+): Promise<CanonicalInsights['localized'] & { language: string }> {
+  const res = await fetchWithTimeout(
+    `${BACKEND_URL}/translate-analysis`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ canonical, language }),
+    },
+    API_TIMEOUT_MS,
+  );
+
+  if (!res.ok) {
+    throw new Error('Translation is temporarily unavailable. Showing the original report.');
+  }
+
+  return res.json();
+}
+
+export async function fetchDoctorQuestions(
+  canonical: CanonicalInsights,
+  language: AppLanguage,
+): Promise<{ questions: string[]; questions_en?: string[]; language: string }> {
+  const res = await fetchWithTimeout(
+    `${BACKEND_URL}/doctor-questions`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ canonical, language }),
+    },
+    API_TIMEOUT_MS,
+  );
+
+  if (!res.ok) {
+    throw new Error('Unable to generate doctor questions right now.');
+  }
+
+  return res.json();
+}
+
+export async function askReportQuestion(params: {
+  canonical: CanonicalInsights;
+  question: string;
+  language: AppLanguage;
+  previousReportSummary?: string;
+}): Promise<{ answer: string; language: string }> {
+  const res = await fetchWithTimeout(
+    `${BACKEND_URL}/ask-report`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    },
+    API_TIMEOUT_MS,
+  );
+
+  if (!res.ok) {
+    throw new Error('Unable to generate an answer right now. Please try again.');
+  }
+
+  return res.json();
+}
+
+export async function fetchLanguages(): Promise<{ code: string; label: string }[]> {
+  const res = await fetchWithTimeout(`${BACKEND_URL}/languages`, { method: 'GET' }, HEALTH_TIMEOUT_MS);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data?.languages) ? data.languages : [];
 }

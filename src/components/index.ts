@@ -13,3 +13,7 @@ export { FormInput } from './FormInput';
 export { DashboardOnboarding } from './DashboardOnboarding';
 export { PhotoGuidanceCard } from './PhotoGuidanceCard';
 export { ReportWhatsNext } from './ReportWhatsNext';
+export { LanguageSelector } from './LanguageSelector';
+export { ConfidenceDisplay } from './ConfidenceDisplay';
+export { AskMyReport } from './AskMyReport';
+export { DoctorQuestions } from './DoctorQuestions';

@@ -11,7 +11,14 @@ import { theme } from '../../src/theme';
 import { InfoBox } from '../../src/components/InfoBox';
 import ResultsLayout from '../../src/components/ResultsLayout';
 import { ReportWhatsNext } from '../../src/components/ReportWhatsNext';
-import { BACKEND_URL } from '../../src/insights';
+import { LanguageSelector } from '../../src/components/LanguageSelector';
+import { ConfidenceDisplay } from '../../src/components/ConfidenceDisplay';
+import { AskMyReport } from '../../src/components/AskMyReport';
+import { DoctorQuestions } from '../../src/components/DoctorQuestions';
+import { BACKEND_URL, translateAnalysis } from '../../src/insights';
+import { getCanonicalFromInsights, getDisplayInsights } from '../../src/lib/canonicalInsights';
+import { AppLanguage } from '../../src/types/language';
+import { loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
 import { useEffect } from 'react';
 
 const HEALTH_CITATIONS = [
@@ -106,7 +113,7 @@ const Checklist: React.FC = () => {
 export default function ScanResult() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { scans } = useApp();
+  const { scans, updateScan } = useApp();
 
   const scan = useMemo(() => scans.find(s => s.id === String(params.id)), [scans, params.id]);
 
@@ -117,11 +124,39 @@ export default function ScanResult() {
   const [sections, setSections] = useState<any | null>(null);
   const [loadingSections, setLoadingSections] = useState(false);
   const [sectionsError, setSectionsError] = useState<string | null>(null);
+  const [displayLanguage, setDisplayLanguage] = useState<AppLanguage>('en');
+  const [translating, setTranslating] = useState(false);
+  const [translationNotice, setTranslationNotice] = useState<string | null>(null);
   const insights = scan?.insights;
-  const attention_level = (insights as any)?.attention_level as string | undefined;
 
   useEffect(() => {
-    if (!insights) return;
+    loadDisplayLanguage().then(setDisplayLanguage);
+  }, []);
+
+  const canonical = useMemo(
+    () => (insights ? getCanonicalFromInsights(insights) : null),
+    [insights],
+  );
+
+  const display = useMemo(
+    () => (insights ? getDisplayInsights(insights, displayLanguage) : null),
+    [insights, displayLanguage],
+  );
+
+  const previousReportSummary = useMemo(() => {
+    if (!scan) return undefined;
+    const older = scans
+      .filter((s) => s.id !== scan.id)
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (!older?.insights) return undefined;
+    const c = getCanonicalFromInsights(older.insights);
+    return c.summary || c.findings_text?.[0];
+  }, [scan, scans]);
+
+  const attention_level = display?.attention_level || (insights as any)?.attention_level;
+
+  useEffect(() => {
+    if (!insights || !canonical) return;
 
     let mounted = true;
     async function fetchSections() {
@@ -129,14 +164,15 @@ export default function ScanResult() {
       setSectionsError(null);
       try {
         const payload = {
+          language: displayLanguage,
           insights: {
-            xray_type: (insights as any)?.xray_type,
-            attention_level: (insights as any)?.attention_level,
-            findings: (insights as any)?.findings,
-            possible_conditions: (insights as any)?.possible_conditions,
-            possible_symptoms: (insights as any)?.possible_symptoms,
-            references: (insights as any)?.references,
-            confidence_score: (insights as any)?.confidence_score,
+            xray_type: insights?.xray_type,
+            attention_level: display?.attention_level || insights?.attention_level,
+            findings: display?.findings || insights?.findings,
+            possible_conditions: display?.possible_conditions || insights?.possible_conditions,
+            possible_symptoms: display?.possible_symptoms || insights?.possible_symptoms,
+            references: insights?.references,
+            confidence_score: insights?.confidence_score,
           },
         };
 
@@ -146,17 +182,14 @@ export default function ScanResult() {
           body: JSON.stringify(payload),
         });
 
-        const text = await res.text();
-        console.log('generate-sections raw response:', res.status, text);
-        if (!res.ok) throw new Error(`Failed to generate sections: ${res.status}`);
-        const data = JSON.parse(text || '{}');
+        if (!res.ok) throw new Error('Failed to generate sections');
+        const data = await res.json();
         if (mounted) {
-          setSections(hasSectionContent(data) ? data : buildSectionsFromInsights(insights));
+          setSections(hasSectionContent(data) ? data : buildSectionsFromInsights({ ...insights, findings: display?.findings }));
         }
-      } catch (err) {
-        console.warn('generate-sections error', err);
+      } catch {
         if (mounted) {
-          setSections(buildSectionsFromInsights(insights));
+          setSections(buildSectionsFromInsights({ ...insights, findings: display?.findings }));
           setSectionsError('Generated sections are unavailable right now. The scan insights below are still available.');
         }
       } finally {
@@ -166,7 +199,52 @@ export default function ScanResult() {
 
     fetchSections();
     return () => { mounted = false; };
-  }, [insights]);
+  }, [insights, displayLanguage, display?.findings?.join('|')]);
+
+  const handleLanguageChange = async (lang: AppLanguage) => {
+    if (!scan || !insights || !canonical) return;
+    setDisplayLanguage(lang);
+    await saveDisplayLanguage(lang);
+    setTranslationNotice(null);
+
+    if (lang === 'en' || insights.translations?.[lang]) return;
+
+    setTranslating(true);
+    try {
+      const translated = await translateAnalysis(canonical, lang);
+      await updateScan(scan.id, (current) => ({
+        ...current,
+        insights: {
+          ...current.insights,
+          translations: {
+            ...(current.insights.translations || {}),
+            [lang]: translated,
+          },
+        },
+      }));
+      if (translated.translation_fallback) {
+        setTranslationNotice('Translation is temporarily unavailable. Showing the original report.');
+      }
+    } catch {
+      setTranslationNotice('Translation is temporarily unavailable. Showing the original report.');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const cacheDoctorQuestions = async (questions: string[], lang: AppLanguage) => {
+    if (!scan) return;
+    await updateScan(scan.id, (current) => ({
+      ...current,
+      insights: {
+        ...current.insights,
+        doctor_questions: {
+          ...(current.insights.doctor_questions || {}),
+          [lang]: questions,
+        },
+      },
+    }));
+  };
 
   if (!scan || !insights) {
     return (
@@ -186,9 +264,11 @@ export default function ScanResult() {
     );
   }
 
-  const renderPrimaryInsights = () => (
+  const renderPrimaryInsights = () => {
+    if (!display) return null;
+    return (
     <>
-      {insights.findings?.length ? (
+      {display.findings?.length ? (
         <>
           <View style={styles.sectionHeader}>
             <LinearGradient
@@ -203,7 +283,7 @@ export default function ScanResult() {
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            {insights.findings.map((item, idx) => (
+            {display.findings.map((item: string, idx: number) => (
               <View key={`finding-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
                   <View style={styles.bulletDot} />
@@ -213,7 +293,7 @@ export default function ScanResult() {
             ))}
           </Card>
         </>
-      ) : insights.summary ? (
+      ) : display.summary ? (
         <>
           <View style={styles.sectionHeader}>
             <LinearGradient
@@ -224,16 +304,16 @@ export default function ScanResult() {
             >
               <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
             </LinearGradient>
-            <Text style={styles.sectionTitle}>Summary</Text>
+            <Text style={styles.sectionTitle}>Overall Summary</Text>
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            <Text style={styles.bodyText}>{insights.summary}</Text>
+            <Text style={styles.bodyText}>{display.summary}</Text>
           </Card>
         </>
       ) : null}
 
-      {insights.possible_conditions?.length ? (
+      {display.possible_conditions?.length ? (
         <>
           <Spacer size={28} />
           <View style={styles.sectionHeader}>
@@ -249,7 +329,7 @@ export default function ScanResult() {
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            {insights.possible_conditions.map((r, idx) => (
+            {display.possible_conditions.map((r: string, idx: number) => (
               <View key={`cond-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
                   <Ionicons name="checkmark-circle" size={18} color={theme.colors.secondary} />
@@ -261,7 +341,7 @@ export default function ScanResult() {
         </>
       ) : null}
 
-      {insights.possible_symptoms?.length ? (
+      {display.possible_symptoms?.length ? (
         <>
           <Spacer size={28} />
           <View style={styles.sectionHeader}>
@@ -277,7 +357,7 @@ export default function ScanResult() {
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            {insights.possible_symptoms.map((t, idx) => (
+            {display.possible_symptoms.map((t: string, idx: number) => (
               <View key={`sym-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
                   <Ionicons name="heart-outline" size={16} color={theme.colors.info} />
@@ -289,11 +369,12 @@ export default function ScanResult() {
         </>
       ) : null}
 
-      {(insights.findings?.length || insights.summary || insights.possible_conditions?.length || insights.possible_symptoms?.length) && (
+      {(display.findings?.length || display.summary || display.possible_conditions?.length || display.possible_symptoms?.length) && (
         <Spacer size={28} />
       )}
     </>
   );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
@@ -307,6 +388,34 @@ export default function ScanResult() {
       >
 
       {renderPrimaryInsights()}
+
+      <Card elevated>
+        <Text style={styles.sectionTitle}>Report Language</Text>
+        <Spacer size={8} />
+        <LanguageSelector value={displayLanguage} onChange={handleLanguageChange} compact />
+        {translating && (
+          <>
+            <Spacer size={8} />
+            <Text style={styles.metaText}>Updating report language...</Text>
+          </>
+        )}
+      </Card>
+
+      {translationNotice && (
+        <>
+          <Spacer size={12} />
+          <InfoBox type="warning" message={translationNotice} />
+        </>
+      )}
+
+      <Spacer size={20} />
+
+      {canonical?.confidence && (
+        <>
+          <ConfidenceDisplay confidence={canonical.confidence} />
+          <Spacer size={28} />
+        </>
+      )}
 
       {/* Dynamic generated sections from backend */}
       {loadingSections ? (
@@ -453,7 +562,7 @@ export default function ScanResult() {
             </>
           )}
 
-          {typeof sections.ai_confidence === 'number' && (
+          {typeof sections.ai_confidence === 'number' && !canonical?.confidence && (
             <>
               <View style={styles.sectionHeader}>
                 <LinearGradient
@@ -563,6 +672,24 @@ export default function ScanResult() {
       ) : null}
 
       <Spacer size={32} />
+
+      {canonical && (
+        <>
+          <AskMyReport
+            canonical={canonical}
+            language={displayLanguage}
+            previousReportSummary={previousReportSummary}
+          />
+          <Spacer size={28} />
+          <DoctorQuestions
+            canonical={canonical}
+            language={displayLanguage}
+            cachedQuestions={insights.doctor_questions?.[displayLanguage]}
+            onCached={cacheDoctorQuestions}
+          />
+          <Spacer size={28} />
+        </>
+      )}
 
       <ReportWhatsNext
         title={insights.title}

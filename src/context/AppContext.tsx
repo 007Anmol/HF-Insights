@@ -18,17 +18,29 @@ export type ScanItem = {
   createdAt: number;
   insights: {
     title: string;
-    // New API fields
     xray_type?: string;
     source?: string;
     findings?: string[];
+    findings_text?: string[];
     possible_conditions?: string[];
     possible_symptoms?: string[];
     confidence_score?: number;
-    // Legacy fields (optional)
+    confidence?: {
+      level?: string;
+      label?: string;
+      disclaimer?: string;
+      is_calibrated?: boolean;
+    };
     summary?: string;
     recommendations?: string[];
     laymanTerms?: { term: string; plain: string }[];
+    canonical?: Record<string, unknown>;
+    translations?: Record<string, unknown>;
+    doctor_questions?: Record<string, string[]>;
+    doctor_questions_en?: string[];
+    attention_level?: string;
+    references?: { title: string; url: string }[];
+    disclaimer?: string;
   };
 };
 
@@ -40,6 +52,7 @@ type AppContextType = {
   deleteAccount: () => Promise<void>;
   scans: ScanItem[];
   addScan: (s: ScanItem) => Promise<string>;
+  updateScan: (id: string, updater: (scan: ScanItem) => ScanItem) => Promise<void>;
   removeScan: (id: string) => void;
   clearScans: () => void;
 };
@@ -288,6 +301,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const updateScan = async (id: string, updater: (scan: ScanItem) => ScanItem) => {
+    let insightsPayload: ScanItem['insights'] | null = null;
+
+    setScans((prev) => {
+      const next = prev.map((scan) => {
+        if (scan.id !== id) return scan;
+        const updated = updater(scan);
+        insightsPayload = updated.insights;
+        return updated;
+      });
+      if (insightsPayload) {
+        void saveScans(next);
+      }
+      return next;
+    });
+
+    if (!insightsPayload || !supabase) return;
+
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id ?? null;
+      if (!userId) return;
+      await supabase
+        .from('scans')
+        .update({ insights: insightsPayload })
+        .eq('id', id)
+        .eq('user_id', userId);
+    } catch {
+      // Local cache already updated
+    }
+  };
+
   const removeScan = async (id: string) => {
     // Immediately update UI by removing from state
     setScans(prev => prev.filter(s => s.id !== id));
@@ -325,7 +370,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const value = useMemo(
-    () => ({ user, authReady, setUser, signOut, deleteAccount, scans, addScan, removeScan, clearScans }),
+    () => ({ user, authReady, setUser, signOut, deleteAccount, scans, addScan, updateScan, removeScan, clearScans }),
     [user, authReady, scans]
   );
 

@@ -6,6 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import gemini_service
 from app import openai_service
 from app import config
+from app.structured_adapter import to_canonical
+from app.translation_service import translate_canonical
+from app.doctor_questions_service import generate_doctor_questions
+from app.ask_report_service import ask_report_question
+from app.languages import SUPPORTED_LANGUAGES, LANGUAGE_LABELS, normalize_language
 from PyPDF2 import PdfReader
 from urllib import request as urlrequest, error as urlerror
 from urllib.parse import quote
@@ -141,12 +146,33 @@ async def delete_account(request: Request):
         "supabase_response": payload,
     }
 
-# ============================
-# IMAGE ANALYSIS
-# ============================
-# ============================
-# IMAGE ANALYSIS
-# ============================
+@app.get("/languages")
+def list_languages():
+    return {
+        "languages": [
+            {"code": code, "label": LANGUAGE_LABELS[code]}
+            for code in SUPPORTED_LANGUAGES
+        ]
+    }
+
+
+def _analyze_raw_image(image_bytes: bytes):
+    """Run vision analysis in English to produce canonical source-of-truth."""
+    try:
+        return gemini_service.analyze_xray_image(image_bytes=image_bytes, language="en")
+    except Exception as gemini_err:
+        if config.get_openai_api_key():
+            return openai_service.analyze_xray_image(image_bytes=image_bytes, language="en")
+        raise gemini_err
+
+
+def _analyze_raw_pdf(report_text: str):
+    try:
+        return gemini_service.analyze_text_report(report_text=report_text, language="en")
+    except Exception as gemini_err:
+        if config.get_openai_api_key():
+            return openai_service.analyze_text_report(report_text=report_text, language="en")
+        raise gemini_err
 
 @app.post("/analyze-image")
 async def analyze_image(
@@ -162,49 +188,33 @@ async def analyze_image(
                 detail="Empty image file"
             )
 
-        # Try Gemini first
         try:
-            return gemini_service.analyze_xray_image(
-                image_bytes=image_bytes,
-                language=language
-            )
+            raw = _analyze_raw_image(image_bytes)
+            canonical = to_canonical(raw)
+            display_lang = normalize_language(language)
+            if display_lang != "en":
+                localized = translate_canonical(canonical, display_lang)
+                return {
+                    **canonical,
+                    "localized": localized,
+                    "display_language": display_lang,
+                }
+            return {**canonical, "display_language": "en"}
 
-        except Exception as gemini_err:
-            print(
-                f"Gemini failed: "
-                f"{type(gemini_err).__name__}: {gemini_err}"
-            )
-
-            # Fall back to OpenAI if configured
-            if config.get_openai_api_key():
-                try:
-                    return openai_service.analyze_xray_image(
-                        image_bytes=image_bytes,
-                        language=language
-                    )
-
-                except Exception as openai_err:
-                    print(
-                        f"OpenAI fallback failed: "
-                        f"{type(openai_err).__name__}: {openai_err}"
-                    )
-
-            # Neither service succeeded
+        except Exception as err:
+            print(f"Analysis failed: {type(err).__name__}: {err}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=(
-                    f"Gemini analysis failed: "
-                    f"{type(gemini_err).__name__}: {gemini_err}"
-                )
+                detail="Unable to analyze scan right now. Please try again shortly.",
             )
 
     except HTTPException:
         raise
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail="Unable to analyze scan right now. Please try again shortly.",
         )
 
 # ============================
@@ -242,6 +252,77 @@ async def generate_sections(request: Request):
         detail = f"{detail}: {'; '.join(errors)}"
 
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+
+
+@app.post("/translate-analysis")
+async def translate_analysis(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body")
+
+    canonical = body.get("canonical")
+    language = normalize_language(body.get("language"))
+    if not canonical or not isinstance(canonical, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'canonical' object")
+
+    try:
+        translated = translate_canonical(canonical, language)
+        return translated
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Translation is temporarily unavailable. Showing the original report.",
+        )
+
+
+@app.post("/doctor-questions")
+async def doctor_questions(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body")
+
+    canonical = body.get("canonical")
+    language = normalize_language(body.get("language", "en"))
+    if not canonical or not isinstance(canonical, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'canonical' object")
+
+    try:
+        return generate_doctor_questions(canonical, language)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to generate doctor questions right now. Please try again.",
+        )
+
+
+@app.post("/ask-report")
+async def ask_report(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body")
+
+    canonical = body.get("canonical")
+    question = body.get("question")
+    language = normalize_language(body.get("language", "en"))
+    previous_report_summary = body.get("previous_report_summary")
+
+    if not canonical or not isinstance(canonical, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'canonical' object")
+    if not question or not str(question).strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'question'")
+
+    try:
+        return ask_report_question(canonical, str(question), language, previous_report_summary)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid question")
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to generate an answer right now. Please try again.",
+        )
 
 # ============================
 # PDF REPORT ANALYSIS
@@ -282,20 +363,22 @@ async def analyze_report_pdf(
             )
 
         try:
-            return gemini_service.analyze_text_report(
-                report_text=report_text,
-                language=language
-            )
+            raw = _analyze_raw_pdf(report_text)
+            canonical = to_canonical(raw)
+            display_lang = normalize_language(language)
+            if display_lang != "en":
+                localized = translate_canonical(canonical, display_lang)
+                return {
+                    **canonical,
+                    "localized": localized,
+                    "display_language": display_lang,
+                }
+            return {**canonical, "display_language": "en"}
         except Exception as gemini_err:
-            print(f"Gemini failed: {gemini_err}. Falling back to OpenAI.")
-            if not config.get_openai_api_key():
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="GEMINI and OPENAI_API_KEY not set or both failed"
-                )
-            return openai_service.analyze_text_report(
-                report_text=report_text,
-                language=language
+            print(f"PDF analysis failed: {gemini_err}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Unable to analyze report right now. Please try again shortly.",
             )
 
     except HTTPException:
