@@ -1,0 +1,17 @@
+export const API_TIMEOUT_MS = 45000;
+export const TTS_TIMEOUT_MS = 35000;
+export const HEALTH_TIMEOUT_MS = 8000;
+
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}

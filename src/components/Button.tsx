@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   gradientInner: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: theme.borderRadius.lg,

@@ -37,6 +37,7 @@ export const AskMyReport: React.FC<Props> = ({ canonical, language, previousRepo
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
 
   const submit = async (q: string) => {
     const trimmed = q.trim();
@@ -44,6 +45,7 @@ export const AskMyReport: React.FC<Props> = ({ canonical, language, previousRepo
     setLoading(true);
     setError(null);
     setAnswer(null);
+    setOfflineNotice(null);
     try {
       const result = await askReportQuestion({
         canonical,
@@ -52,6 +54,11 @@ export const AskMyReport: React.FC<Props> = ({ canonical, language, previousRepo
         previousReportSummary,
       });
       setAnswer(result.answer);
+      if (result.offline_fallback) {
+        setOfflineNotice(
+          'Using a summary from your report only. Connect to the latest backend for full AI answers.',
+        );
+      }
     } catch {
       setError('Unable to generate an answer right now. Please try again.');
     } finally {
@@ -108,6 +115,13 @@ export const AskMyReport: React.FC<Props> = ({ canonical, language, previousRepo
         <>
           <Spacer size={12} />
           <Text style={styles.errorText}>{error}</Text>
+        </>
+      )}
+
+      {offlineNotice && (
+        <>
+          <Spacer size={12} />
+          <Text style={styles.noticeText}>{offlineNotice}</Text>
         </>
       )}
 
@@ -170,6 +184,11 @@ const styles = StyleSheet.create({
   errorText: {
     color: theme.colors.error,
     fontSize: theme.typography.fontSize.sm,
+  },
+  noticeText: {
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed,
   },
   answerBox: {
     backgroundColor: theme.colors.background.secondary,

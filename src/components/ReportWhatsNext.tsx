@@ -8,10 +8,19 @@ import { Button } from './Button';
 import { theme } from '../theme';
 import type { ScanItem } from '../context/AppContext';
 
+export type ShareInsightsSnapshot = {
+  xray_type?: string;
+  findings?: string[];
+  possible_conditions?: string[];
+  possible_symptoms?: string[];
+  summary?: string;
+};
+
 type ReportWhatsNextProps = {
   title: string;
   createdAt: number;
   insights: ScanItem['insights'];
+  shareSnapshot?: ShareInsightsSnapshot;
   onAnalyzeAnother: () => void;
   onReturnDashboard: () => void;
 };
@@ -21,6 +30,7 @@ function formatReportText(
   createdAt: number,
   insights: ScanItem['insights'],
   forDoctor: boolean,
+  shareSnapshot?: ShareInsightsSnapshot,
 ): string {
   const lines: string[] = [];
 
@@ -33,8 +43,9 @@ function formatReportText(
   lines.push(`Title: ${title}`);
   lines.push(`Date: ${new Date(createdAt).toLocaleString()}`);
 
-  if (insights.xray_type) {
-    lines.push(`X-ray type: ${insights.xray_type}`);
+  const xrayType = shareSnapshot?.xray_type ?? insights.xray_type;
+  if (xrayType) {
+    lines.push(`X-ray type: ${xrayType}`);
   }
 
   const appendSection = (heading: string, items?: string[]) => {
@@ -44,14 +55,15 @@ function formatReportText(
     items.forEach((item) => lines.push(`• ${item}`));
   };
 
-  appendSection('Image Observations:', insights.findings);
-  appendSection('Patterns the AI Detected:', insights.possible_conditions);
-  appendSection('Possible Symptoms:', insights.possible_symptoms);
+  appendSection('Image Observations:', shareSnapshot?.findings ?? insights.findings);
+  appendSection('Patterns the AI Detected:', shareSnapshot?.possible_conditions ?? insights.possible_conditions);
+  appendSection('Possible Symptoms:', shareSnapshot?.possible_symptoms ?? insights.possible_symptoms);
 
-  if (insights.summary) {
+  const summary = shareSnapshot?.summary ?? insights.summary;
+  if (summary) {
     lines.push('');
     lines.push('Summary:');
-    lines.push(insights.summary);
+    lines.push(summary);
   }
 
   lines.push('');
@@ -102,12 +114,13 @@ export const ReportWhatsNext: React.FC<ReportWhatsNextProps> = ({
   title,
   createdAt,
   insights,
+  shareSnapshot,
   onAnalyzeAnother,
   onReturnDashboard,
 }) => {
   const shareReport = async (forDoctor: boolean) => {
     try {
-      const message = formatReportText(title, createdAt, insights, forDoctor);
+      const message = formatReportText(title, createdAt, insights, forDoctor, shareSnapshot);
       await Share.share(
         Platform.OS === 'ios'
           ? { message, title: 'HF Insights Report' }

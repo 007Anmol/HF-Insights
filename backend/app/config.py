@@ -34,6 +34,14 @@ def get_openai_api_key():
     return _clean_env_value("OPENAI_API_KEY")
 
 
+def get_elevenlabs_api_key():
+    return _clean_env_value("ELEVENLABS_API_KEY")
+
+
+def get_elevenlabs_voice_id():
+    return _clean_env_value("ELEVENLABS_VOICE_ID")
+
+
 def get_supabase_url():
     return _clean_env_value("SUPABASE_URL")
 

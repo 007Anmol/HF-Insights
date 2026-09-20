@@ -14,7 +14,7 @@ import { useApp } from '../../src/context/AppContext';
 import { generateInsightsFromImage, generateInsightsFromPdf, setInsightsLanguage } from '../../src/insights';
 import { LanguageSelector } from '../../src/components/LanguageSelector';
 import { AppLanguage } from '../../src/types/language';
-import { loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
+import { detectDefaultLanguage, loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
 import { supabase } from '../../src/supabase';
 import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,10 +29,13 @@ export default function NewScan() {
   const [uri, setUri] = useState<string | null>(null);
   const [isPdf, setIsPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [language, setLanguage] = useState<AppLanguage>('en');
+  const [language, setLanguage] = useState<AppLanguage>(() => detectDefaultLanguage());
 
   useEffect(() => {
-    loadDisplayLanguage().then(setLanguage);
+    loadDisplayLanguage().then((lang) => {
+      setLanguage(lang);
+      setInsightsLanguage(lang);
+    });
   }, []);
 
   const onLanguageChange = async (lang: AppLanguage) => {
@@ -56,7 +59,7 @@ export default function NewScan() {
       try {
         const asset = res.assets[0];
         let originalName = asset.fileName || asset.uri.split('/').pop() || 'image.jpg';
-        const convertedUri = await preprocessImage(asset.uri, originalName);
+        const convertedUri = await preprocessImage(asset.uri, originalName, { mimeType: asset.mimeType });
         setUri(convertedUri);
         setIsPdf(false);
       } catch (err: any) {
@@ -79,7 +82,7 @@ export default function NewScan() {
       try {
         const asset = res.assets[0];
         let originalName = asset.fileName || 'camera_image.jpg';
-        const convertedUri = await preprocessImage(asset.uri, originalName);
+        const convertedUri = await preprocessImage(asset.uri, originalName, { mimeType: asset.mimeType });
         setUri(convertedUri);
         setIsPdf(false);
       } catch (err: any) {

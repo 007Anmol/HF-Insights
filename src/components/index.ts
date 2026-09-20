@@ -19,3 +19,6 @@ export { AskMyReport } from './AskMyReport';
 export { DoctorQuestions } from './DoctorQuestions';
 export { ReportNavBar } from './ReportNavBar';
 export type { ReportNavSection } from './ReportNavBar';
+export { MedicalTermRichText } from './MedicalTermRichText';
+export { TermExplanationSheet } from './TermExplanationSheet';
+export { ReportVoiceConversation } from './ReportVoiceConversation';

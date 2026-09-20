@@ -11,6 +11,7 @@ import { fetchDoctorQuestions } from '../insights';
 type Props = {
   canonical: CanonicalInsights;
   language: AppLanguage;
+  contentKey?: string;
   cachedQuestions?: string[];
   onCached?: (questions: string[], language: AppLanguage) => void;
 };
@@ -18,17 +19,20 @@ type Props = {
 export const DoctorQuestions: React.FC<Props> = ({
   canonical,
   language,
+  contentKey,
   cachedQuestions,
   onCached,
 }) => {
   const [questions, setQuestions] = useState<string[]>(cachedQuestions || []);
   const [loading, setLoading] = useState(!cachedQuestions?.length);
   const [error, setError] = useState<string | null>(null);
+  const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (cachedQuestions?.length) {
       setQuestions(cachedQuestions);
       setLoading(false);
+      setOfflineNotice(null);
       return;
     }
 
@@ -36,10 +40,14 @@ export const DoctorQuestions: React.FC<Props> = ({
     (async () => {
       setLoading(true);
       setError(null);
+      setOfflineNotice(null);
       try {
         const result = await fetchDoctorQuestions(canonical, language);
         if (!mounted) return;
         setQuestions(result.questions || []);
+        if (result.offline_fallback) {
+          setOfflineNotice('Suggested from your report summary. Update the backend for personalized AI questions.');
+        }
         onCached?.(result.questions || [], language);
       } catch {
         if (mounted) {
@@ -53,7 +61,7 @@ export const DoctorQuestions: React.FC<Props> = ({
     return () => {
       mounted = false;
     };
-  }, [language, cachedQuestions?.length]);
+  }, [language, contentKey, cachedQuestions?.length]);
 
   return (
     <Card elevated variant="gradient">
@@ -70,6 +78,8 @@ export const DoctorQuestions: React.FC<Props> = ({
       {loading && <ActivityIndicator color={theme.colors.primary} />}
 
       {error && <Text style={styles.errorText}>{error}</Text>}
+
+      {offlineNotice && !error && <Text style={styles.noticeText}>{offlineNotice}</Text>}
 
       {!loading && !error && questions.map((q, idx) => (
         <View key={`${idx}-${q.slice(0, 12)}`} style={[styles.questionRow, idx > 0 && styles.borderTop]}>
@@ -134,5 +144,11 @@ const styles = StyleSheet.create({
   errorText: {
     color: theme.colors.error,
     fontSize: theme.typography.fontSize.sm,
+  },
+  noticeText: {
+    marginBottom: theme.spacing.sm,
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed,
   },
 });

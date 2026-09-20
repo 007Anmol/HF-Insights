@@ -1,5 +1,16 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity, Pressable } from 'react-native';
+import Toast from 'react-native-toast-message';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Linking,
+  TouchableOpacity,
+  Pressable,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,11 +28,19 @@ import { ConfidenceDisplay } from '../../src/components/ConfidenceDisplay';
 import { AskMyReport } from '../../src/components/AskMyReport';
 import { DoctorQuestions } from '../../src/components/DoctorQuestions';
 import { ReportNavBar, type ReportNavSection } from '../../src/components/ReportNavBar';
+import { MedicalTermRichText } from '../../src/components/MedicalTermRichText';
+import { TermExplanationSheet } from '../../src/components/TermExplanationSheet';
+import type { CanonicalInsights } from '../../src/lib/canonicalInsights';
 import { useReportScrollNav } from '../../src/hooks/useReportScrollNav';
-import { BACKEND_URL, translateAnalysis } from '../../src/insights';
+import {
+  generateReportSections,
+  isBackendReportFeaturesLimited,
+  translateAnalysis,
+} from '../../src/insights';
+import { buildDisplayContentKey } from '../../src/lib/displayFingerprint';
 import { getCanonicalFromInsights, getDisplayInsights } from '../../src/lib/canonicalInsights';
 import { AppLanguage } from '../../src/types/language';
-import { loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
+import { detectDefaultLanguage, loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
 
 const HEALTH_CITATIONS = [
   { title: 'Mayo Clinic', url: 'https://www.mayoclinic.org/' },
@@ -127,9 +146,23 @@ export default function ScanResult() {
   const [sections, setSections] = useState<any | null>(null);
   const [loadingSections, setLoadingSections] = useState(false);
   const [sectionsError, setSectionsError] = useState<string | null>(null);
-  const [displayLanguage, setDisplayLanguage] = useState<AppLanguage>('en');
+  const [displayLanguage, setDisplayLanguage] = useState<AppLanguage>(() => detectDefaultLanguage());
   const [translating, setTranslating] = useState(false);
   const [translationNotice, setTranslationNotice] = useState<string | null>(null);
+  const [termSheetTerm, setTermSheetTerm] = useState<string | null>(null);
+  const [voiceConversationOpen, setVoiceConversationOpen] = useState(false);
+  const [voiceLoadError, setVoiceLoadError] = useState<string | null>(null);
+  const [backendLimited, setBackendLimited] = useState(false);
+  const [VoiceConversationModal, setVoiceConversationModal] = useState<
+    React.ComponentType<{
+      visible: boolean;
+      onClose: () => void;
+      canonical: CanonicalInsights;
+      displayLanguage: AppLanguage;
+      previousReportSummary?: string;
+      reportTitle?: string;
+    }> | null
+  >(null);
   const insights = scan?.insights;
 
   useEffect(() => {
@@ -141,10 +174,44 @@ export default function ScanResult() {
     [insights],
   );
 
+  useEffect(() => {
+    if (!voiceConversationOpen || !canonical || VoiceConversationModal) return;
+    setVoiceLoadError(null);
+    // Metro resolves this path; Node16 moduleResolution requires an extension for tsc only.
+    void import('../../src/components/ReportVoiceConversation' as `${string}.tsx`)
+      .then((mod) => {
+        setVoiceConversationModal(() => mod.ReportVoiceConversation);
+      })
+      .catch(() => {
+        setVoiceLoadError('Voice chat could not load. Reload the app and try again.');
+        setVoiceConversationOpen(false);
+      });
+  }, [voiceConversationOpen, canonical, VoiceConversationModal]);
+
   const display = useMemo(
     () => (insights ? getDisplayInsights(insights, displayLanguage) : null),
     [insights, displayLanguage],
   );
+
+  const displayContentKey = useMemo(
+    () => buildDisplayContentKey(displayLanguage, display),
+    [displayLanguage, display],
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    void isBackendReportFeaturesLimited().then((limited) => {
+      if (mounted) setBackendLimited(limited);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!voiceLoadError) return;
+    Toast.show({ type: 'error', text1: 'Voice unavailable', text2: voiceLoadError });
+  }, [voiceLoadError]);
 
   const previousReportSummary = useMemo(() => {
     if (!scan) return undefined;
@@ -216,14 +283,7 @@ export default function ScanResult() {
           },
         };
 
-        const res = await fetch(`${BACKEND_URL}/generate-sections`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) throw new Error('Failed to generate sections');
-        const data = await res.json();
+        const data = await generateReportSections(payload);
         if (mounted) {
           setSections(hasSectionContent(data) ? data : buildSectionsFromInsights({ ...insights, findings: display?.findings }));
         }
@@ -239,7 +299,7 @@ export default function ScanResult() {
 
     fetchSections();
     return () => { mounted = false; };
-  }, [insights, displayLanguage, display?.findings?.join('|')]);
+  }, [insights, displayContentKey, display?.findings]);
 
   const handleLanguageChange = async (lang: AppLanguage) => {
     if (!scan || !insights || !canonical) return;
@@ -315,8 +375,10 @@ export default function ScanResult() {
     );
   }
 
+  const openTermExplanation = (term: string) => setTermSheetTerm(term);
+
   const renderPrimaryInsights = () => {
-    if (!display) return null;
+    if (!display || !canonical) return null;
     return (
     <>
       {display.findings?.length ? (
@@ -339,7 +401,7 @@ export default function ScanResult() {
                 <View style={styles.bulletPoint}>
                   <View style={styles.bulletDot} />
                 </View>
-                <Text style={styles.bodyText}>{item}</Text>
+                <MedicalTermRichText text={item} style={styles.bodyText} onExplainTerm={openTermExplanation} />
               </View>
             ))}
           </Card>
@@ -359,7 +421,7 @@ export default function ScanResult() {
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            <Text style={styles.bodyText}>{display.summary}</Text>
+            <MedicalTermRichText text={display.summary} style={styles.bodyText} onExplainTerm={openTermExplanation} />
           </Card>
         </>
       ) : null}
@@ -385,7 +447,7 @@ export default function ScanResult() {
                 <View style={styles.bulletPoint}>
                   <Ionicons name="checkmark-circle" size={18} color={theme.colors.secondary} />
                 </View>
-                <Text style={styles.bodyText}>{r}</Text>
+                <MedicalTermRichText text={r} style={styles.bodyText} onExplainTerm={openTermExplanation} />
               </View>
             ))}
           </Card>
@@ -413,7 +475,7 @@ export default function ScanResult() {
                 <View style={styles.bulletPoint}>
                   <Ionicons name="heart-outline" size={16} color={theme.colors.info} />
                 </View>
-                <Text style={styles.bodyText}>{t}</Text>
+                <MedicalTermRichText text={t} style={styles.bodyText} onExplainTerm={openTermExplanation} />
               </View>
             ))}
           </Card>
@@ -442,7 +504,14 @@ export default function ScanResult() {
         <Text style={styles.topBarTitle} numberOfLines={1}>
           {insights.title}
         </Text>
-        <View style={styles.topBarSpacer} />
+        <Pressable
+          onPress={() => setVoiceConversationOpen(true)}
+          style={styles.voiceHeaderButton}
+          accessibilityRole="button"
+          accessibilityLabel="Talk about your report"
+        >
+          <Ionicons name="mic" size={22} color={theme.colors.primary} />
+        </Pressable>
       </View>
 
       <ReportNavBar
@@ -489,6 +558,16 @@ export default function ScanResult() {
               <>
                 <Spacer size={12} />
                 <InfoBox type="warning" message={translationNotice} />
+              </>
+            )}
+
+            {backendLimited && (
+              <>
+                <Spacer size={12} />
+                <InfoBox
+                  type="info"
+                  message="Some AI features use report-only summaries until the server is updated (translation, Ask My Report, voice, ElevenLabs). Scan analysis still works."
+                />
               </>
             )}
           </View>
@@ -775,6 +854,7 @@ export default function ScanResult() {
             <DoctorQuestions
               canonical={canonical}
               language={displayLanguage}
+              contentKey={`${scan.id}-${displayContentKey}`}
               cachedQuestions={insights.doctor_questions?.[displayLanguage]}
               onCached={cacheDoctorQuestions}
             />
@@ -788,6 +868,13 @@ export default function ScanResult() {
           title={insights.title}
           createdAt={scan.createdAt}
           insights={insights}
+          shareSnapshot={{
+            xray_type: insights.xray_type,
+            findings: display?.findings,
+            possible_conditions: display?.possible_conditions,
+            possible_symptoms: display?.possible_symptoms,
+            summary: display?.summary,
+          }}
           onAnalyzeAnother={() => router.push('/scan/new')}
           onReturnDashboard={() => router.replace('/dashboard')}
         />
@@ -795,6 +882,33 @@ export default function ScanResult() {
           </ResultsLayout>
         </View>
       </ScrollView>
+
+      {canonical && (
+        <>
+          <TermExplanationSheet
+            visible={Boolean(termSheetTerm)}
+            term={termSheetTerm}
+            canonical={canonical}
+            language={displayLanguage}
+            onClose={() => setTermSheetTerm(null)}
+          />
+          {VoiceConversationModal ? (
+            <VoiceConversationModal
+              visible={voiceConversationOpen}
+              onClose={() => setVoiceConversationOpen(false)}
+              canonical={canonical}
+              displayLanguage={displayLanguage}
+              previousReportSummary={previousReportSummary}
+              reportTitle={insights.title}
+            />
+          ) : null}
+          <Modal visible={voiceConversationOpen && !VoiceConversationModal} transparent animationType="fade">
+            <View style={styles.voiceLoadingOverlay}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+          </Modal>
+        </>
+      )}
     </View>
   );
 }
@@ -831,8 +945,17 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
   },
-  topBarSpacer: {
-    width: 72,
+  voiceHeaderButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceLoadingOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   container: { 
     backgroundColor: theme.colors.background.primary,

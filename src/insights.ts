@@ -6,6 +6,7 @@ import {
   fallbackDoctorQuestions,
   isNewApiUnavailable,
 } from './lib/reportFallbacks';
+import { API_TIMEOUT_MS, HEALTH_TIMEOUT_MS, fetchWithTimeout } from './lib/apiFetch';
 
 function canonicalForTranslation(canonical: CanonicalInsights) {
   return {
@@ -48,18 +49,6 @@ export const BACKEND_URL =
 
 const COLD_START_STATUS_CODES = new Set([502, 503, 504]);
 const ANALYZE_TIMEOUT_MS = 90000;
-const HEALTH_TIMEOUT_MS = 8000;
-const API_TIMEOUT_MS = 45000;
-
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -266,7 +255,12 @@ export async function askReportQuestion(params: {
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        canonical: params.canonical,
+        question: params.question,
+        language: params.language,
+        previous_report_summary: params.previousReportSummary,
+      }),
     },
     API_TIMEOUT_MS,
   );
@@ -290,4 +284,43 @@ export async function fetchLanguages(): Promise<{ code: string; label: string }[
   if (!res.ok) return [];
   const data = await res.json();
   return Array.isArray(data?.languages) ? data.languages : [];
+}
+
+/** True when the deployed backend is missing newer report/translation routes (404 on /languages). */
+export async function isBackendReportFeaturesLimited(): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(`${BACKEND_URL}/languages`, { method: 'GET' }, HEALTH_TIMEOUT_MS);
+    return res.status === 404;
+  } catch {
+    return false;
+  }
+}
+
+export async function generateReportSections(payload: {
+  language: AppLanguage;
+  insights: Record<string, unknown>;
+}): Promise<Record<string, unknown>> {
+  const run = () =>
+    fetchWithTimeout(
+      `${BACKEND_URL}/generate-sections`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      API_TIMEOUT_MS,
+    );
+
+  let res = await run();
+  if (!res.ok && COLD_START_STATUS_CODES.has(res.status)) {
+    await pingBackendHealth(HEALTH_TIMEOUT_MS);
+    await delay(2500);
+    res = await run();
+  }
+
+  if (!res.ok) {
+    throw new Error('Failed to generate sections');
+  }
+
+  return res.json();
 }

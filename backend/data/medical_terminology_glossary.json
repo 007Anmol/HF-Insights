@@ -1,0 +1,429 @@
+{
+  "version": "1.0",
+  "entries": [
+    {
+      "id": "degenerative_changes",
+      "term": "degenerative changes",
+      "synonyms": ["degenerative change", "degeneration", "degenerative joint disease"],
+      "body_parts": ["joint", "spine", "knee", "hip"],
+      "not_confused_with": ["acute fracture", "acute infection"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "Degenerative changes generally refer to structural changes that can occur in a joint or spine over time, often related to wear-and-tear. The significance depends on your symptoms, examination, and clinical history.",
+        "clinical_context": "Explain only in the context of this report. Do not infer severity beyond what the report states.",
+        "discuss_questions": [
+          "Could these findings relate to my symptoms?",
+          "Do these findings require follow-up imaging or evaluation?",
+          "What treatments or lifestyle changes might help?",
+          "When should I schedule a follow-up visit?"
+        ],
+        "important_note": "This explanation is educational and informational. It does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "अपक्षयी परिवर्तन (degenerative changes) आमतौर पर समय के साथ जोड़ या रीढ़ में होने वाले संरचनात्मक बदलावों को दर्शाते हैं। इनका महत्व आपके लक्षणों, जांच और चिकित्सा इतिहास पर निर्भर करता है।",
+        "clinical_context": "केवल इस रिपोर्ट के संदर्भ में समझाएं। रिपोर्ट से आगे गंभीरता का अनुमान न लगाएं।",
+        "discuss_questions": [
+          "क्या ये निष्कर्ष मेरे लक्षणों से जुड़े हो सकते हैं?",
+          "क्या इनके लिए फॉलो-अप की जरूरत है?",
+          "क्या कोई अतिरिक्त जांच आवश्यक है?"
+        ],
+        "important_note": "यह जानकारी शैक्षिक है और स्वतंत्र रूप से निदान नहीं बताती।"
+      },
+      "mr": {
+        "patient_definition": "अपक्षयी बदल (degenerative changes) सामान्यतः कालांतराने सांध्य किंवा पाठीच्या रचनेत होणारे बदल दर्शवतात. महत्त्व लक्षणे, तपासणी आणि इतिहासावर अवलंबून असते.",
+        "clinical_context": "फक्त या अहवालाच्या संदर्भात स्पष्ट करा.",
+        "discuss_questions": [
+          "हे निष्कर्ष माझ्या लक्षणांशी संबंधित असू शकतात का?",
+          "फॉलो-अप आवश्यक आहे का?",
+          "अतिरिक्त तपासणी लागेल का?"
+        ],
+        "important_note": "ही माहिती शैक्षणिक आहे; स्वतंत्र निदान नाही."
+      },
+      "te": {
+        "patient_definition": "డెజనరేటివ్ మార్పులు (degenerative changes) కాలక్రమేణా కీళ్ళు లేదా వెన్నులో రూపుకల్పనా మార్పులను సూచిస్తాయి. ప్రాముఖ్యత లక్షణాలు, పరీక్ష మరియు చరిత్రపై ఆధారపడి ఉంటుంది.",
+        "clinical_context": "ఈ నివేదిక సందర్భంలో మాత్రమే వివరించండి.",
+        "discuss_questions": [
+          "ఈ కనుగొన్నది నా లక్షణాలకు సంబంధించిందా?",
+          "ఫాలో-అప్ అవసరమా?",
+          "అదనపు పరీక్షలు అవసరమా?"
+        ],
+        "important_note": "ఇది విద్యా సమాచారం మాత్రమే; స్వతంత్ర నిర్ధారణ కాదు."
+      },
+      "pa": {
+        "patient_definition": "ਡੀਜਨਰੇਟਿਵ ਬਦਲਾਅ (degenerative changes) ਆਮ ਤੌਰ 'ਤੇ ਸਮੇਂ ਨਾਲ ਜੋੜਾਂ ਜਾਂ ਰੀੜ੍ਹ ਦੀ ਢਾਂਚਾਗਤ ਬਦਲਾਅ ਦਰਸਾਉਂਦੇ ਹਨ। ਮਹੱਤਵ ਲੱਛਣਾਂ, ਜਾਂਚ ਅਤੇ ਇਤਿਹਾਸ 'ਤੇ ਨਿਰਭਰ ਕਰਦਾ ਹੈ।",
+        "clinical_context": "ਸਿਰਫ਼ ਇਸ ਰਿਪੋਰਟ ਦੇ ਸੰਦਰਭ ਵਿੱਚ ਸਮਝਾਓ।",
+        "discuss_questions": [
+          "ਕੀ ਇਹ ਨਤੀਜੇ ਮੇਰੇ ਲੱਛਣਾਂ ਨਾਲ ਜੁੜੇ ਹੋ ਸਕਦੇ ਹਨ?",
+          "ਕੀ ਫਾਲੋ-ਅਪ ਲੋੜੀਂਦਾ ਹੈ?",
+          "ਕੀ ਵ extra ਜਾਂਚ ਚਾਹੀਦੀ ਹੈ?"
+        ],
+        "important_note": "ਇਹ ਜਾਣਕਾਰੀ ਸਿੱਖਿਆਤਮਕ ਹੈ; ਸੁਤੰਤਰ ਨਿਦਾਨ ਨਹੀਂ।"
+      },
+      "ta": {
+        "patient_definition": "சிதைவு மாற்றங்கள் (degenerative changes) பொதுவாக காலப்போக்கில் மூட்டு அல்லது முதுகில் struktural மாற்றங்களைக் குறிக்கின்றன. முக்கியத்துவம் அறிகுறிகள், பரிசோதனை மற்றும் வரலாற்றைப் பொறுத்தது.",
+        "clinical_context": "இந்த அறிக்கை bağlamında மட்டும் விளக்கவும்.",
+        "discuss_questions": [
+          "இந்த கண்டறிதல்கள் என் அறிகுறிகளுடன் தொடர்புடையதா?",
+          "பின்தொடர்தல் தேவையா?",
+          "கூடுதல் பரிசோதனை தேவையா?"
+        ],
+        "important_note": "இது கல்வி நோக்க información மட்டும்; தனி நோ diagnosis அல்ல."
+      }
+    },
+    {
+      "id": "osteophyte",
+      "term": "osteophyte",
+      "synonyms": ["osteophytes", "bone spur", "bone spurs"],
+      "body_parts": ["joint", "spine"],
+      "not_confused_with": ["fracture fragment", "calcified mass"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "An osteophyte is a small bony growth that can develop around a joint, often associated with joint changes over time.",
+        "clinical_context": "Explain in the context of the report and do not infer severity beyond the report.",
+        "discuss_questions": [
+          "What does this finding mean for my joint symptoms?",
+          "Could this relate to pain or stiffness I am having?",
+          "Is follow-up or treatment needed?"
+        ],
+        "important_note": "This explanation is informational and does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "ऑस्टियोफाइट (osteophyte) जोड़ के आसपास विकसित होने वाली एक छोटी हड्डी की वृद्धि है, अक्सर समय के साथ जोड़ में बदलाव से जुड़ी होती है।",
+        "clinical_context": "रिपोर्ट के संदर्भ में समझाएं; गंभीरता का अनुमान न लगाएं।",
+        "discuss_questions": [
+          "क्या यह मेरे जोड़ के लक्षणों से जुड़ा हो सकता है?",
+          "क्या फॉलो-अप की जरूरत है?"
+        ],
+        "important_note": "यह जानकारी शैक्षिक है; स्वतंत्र निदान नहीं।"
+      },
+      "mr": {
+        "patient_definition": "ऑस्टियोफाइट (osteophyte) हा सांध्याभोवती विकसित होणारा लहान हाडांचा वाढलेला भाग असू शकतो.",
+        "clinical_context": "अहवालाच्या संदर्भात स्पष्ट करा.",
+        "discuss_questions": ["हे माझ्या लक्षणांशी संबंधित आहे का?", "फॉलो-अप लागेल का?"],
+        "important_note": "शैक्षणिक माहिती; स्वतंत्र निदान नाही."
+      },
+      "te": {
+        "patient_definition": "ఆస్టియోఫైట్ (osteophyte) కీళ్ళ చుట్టూ అభివృద్ధి చెందే చిన్న ఎముక వృద్ధి.",
+        "clinical_context": "నివేదిక సందర్భంలో మాత్రమే.",
+        "discuss_questions": ["నా లక్షణాలకు సంబంధించిందా?", "ఫాలో-అప్ అవసరమా?"],
+        "important_note": "విద్యా సమాచారం మాత్రమే."
+      },
+      "pa": {
+        "patient_definition": "ਔਸਟੀਓਫਾਈਟ (osteophyte) ਜੋੜ ਦੇ ਆਲੇ-ਦੁਆਲੇ ਵIKasit ਹADDੀ ਦੀ ਛੋਟੀ ਵਾਧਾ ਹੋ ਸਕਦੀ ਹੈ।",
+        "clinical_context": "ਰਿਪੋਰਟ ਦੇ ਸੰਦਰਭ ਵਿੱਚ।",
+        "discuss_questions": ["ਕੀ ਇਹ ਮੇਰੇ ਲੱਛਣਾਂ ਨਾਲ ਜੁੜਿਆ ਹੈ?", "ਫਾਲੋ-ਅਪ ਚਾਹੀਦਾ ਹੈ?"],
+        "important_note": "ਸਿੱਖਿਆਤਮਕ ਜਾਣਕਾਰੀ।"
+      },
+      "ta": {
+        "patient_definition": "ஆஸ்டியோஃபைட் (osteophyte) மூட்டைச் சுற்றி வளரக்கூடிய சிறிய எலும்பு வளர்ச்சி.",
+        "clinical_context": "அறிக்கை bağlamında மட்டும்.",
+        "discuss_questions": ["என் அறிகுறிகளுடன் தொடர்பா?", "பின்தொடர்தல் தேவையா?"],
+        "important_note": "கல்வி நோக்கம் மட்டும்."
+      }
+    },
+    {
+      "id": "opacity",
+      "term": "opacity",
+      "synonyms": ["opacities", "opacification", "increased opacity"],
+      "body_parts": ["lung", "chest"],
+      "not_confused_with": ["consolidation alone as diagnosis"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "On a chest X-ray, an opacity is an area that appears more white or dense than the surrounding lung tissue. It can have several possible causes, and the report and your doctor help interpret what it means for you.",
+        "clinical_context": "Do not assume a specific disease from the word opacity alone.",
+        "discuss_questions": [
+          "What might this opacity represent in my case?",
+          "Do I need additional tests or follow-up imaging?",
+          "Could this relate to my current symptoms?"
+        ],
+        "important_note": "This explanation is informational and does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "छाती के X-ray में opacity (अपारदर्शिता) फेफड़े की तुलना में अधिक सफेद या सघन दिखने वाला क्षेत्र है। इसके कई संभावित कारण हो सकते हैं।",
+        "clinical_context": "केवल इस शब्द से रोग न तय करें।",
+        "discuss_questions": ["मेरे मामले में इसका क्या अर्थ हो सकता है?", "क्या अतिरिक्त जांच चाहिए?"],
+        "important_note": "शैक्षिक जानकारी; स्वतंत्र निदान नहीं।"
+      },
+      "mr": {
+        "patient_definition": "छाती X-ray मध्ये opacity म्हणजे फुफ्फुसाच्या तुलनेत अधिक घन दिसणारा भाग.",
+        "clinical_context": "फक्त शब्दावरून रोग ठरवू नका.",
+        "discuss_questions": ["माझ्या बाबतीत याचा अर्थ काय?", "पुढील तपासणी लागेल का?"],
+        "important_note": "शैक्षणिक माहिती."
+      },
+      "te": {
+        "patient_definition": "ఛాతీ X-ray లో opacity అంటే 폐 కంటే 더 밀도 있는 ప్రాంతం.",
+        "clinical_context": "పదం మాత్రమే నుండి వ్యాధి నిర్ణయం చేయవద్దు.",
+        "discuss_questions": ["నా విషయంలో దీని అర్థం ఏమిటి?", "అదనపు పరీక్షలు అవసరమా?"],
+        "important_note": "విద్యా సమాచారం."
+      },
+      "pa": {
+        "patient_definition": "ਛਾਤੀ X-ray ਵਿੱਚ opacity ਉਹ ਖੇਤਰ ਹੈ ਜੋ ਫੇਫੜਿਆਂ ਨਾਲੋਂ ਵੱਧ ਸਫ਼Ed ਜਾਂ ਸੰਘਣਾ ਦਿਖਾਈ ਦਿੰਦਾ ਹੈ।",
+        "clinical_context": "ਸਿਰਫ਼ ਸ਼ਬਦ ਤੋਂ ਬਿਮਾਰੀ ਨਾ ਠਹਿਰਾਓ।",
+        "discuss_questions": ["ਮੇਰੇ ਮਾਮਲੇ ਵਿੱਚ ਇਸ ਦਾ ਕੀ ਮਤਲਬ?", "ਹੋਰ ਜਾਂਚ ਚਾਹੀਦੀ ਹੈ?"],
+        "important_note": "ਸਿੱਖਿਆਤਮਕ ਜਾਣਕਾਰੀ।"
+      },
+      "ta": {
+        "patient_definition": "மார்பு X-ray இல் opacity என்பது நுரையீரலை விட அடர்த்தியாகத் தோன்றும் பகுதி.",
+        "clinical_context": "சொல alone நோ diagnosis அல்ல.",
+        "discuss_questions": ["என் விஷயத்தில் இதன் பொருள்?", "கூடுதல் பரிசோதனை தேவையா?"],
+        "important_note": "கல்வி நோக்கம்."
+      }
+    },
+    {
+      "id": "fracture",
+      "term": "fracture",
+      "synonyms": ["fractures", "break", "broken bone"],
+      "body_parts": ["bone"],
+      "not_confused_with": ["degenerative changes", "normal variant"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "A fracture means a break or crack in a bone. Imaging helps show where and how the bone is affected; your doctor interprets this with your symptoms and examination.",
+        "clinical_context": "Use only how the report describes the fracture (location, alignment, displacement if stated).",
+        "discuss_questions": [
+          "How serious is this fracture in my situation?",
+          "What treatment or immobilization is recommended?",
+          "When should I follow up?"
+        ],
+        "important_note": "This explanation is informational and does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "Fracture (हड्डी में दरार) का अर्थ है हड्डी में त्रुटि या दरार। इमेजिंग स्थान दिखाने में मदद करती है; डॉक्टर लक्षणों के साथ व्याख्या करते हैं।",
+        "clinical_context": "केवल रिपोर्ट में वर्णित विवरण का उपयोग करें।",
+        "discuss_questions": ["मेरी स्थिति में इसका क्या मतलब है?", "इलाज क्या हो सकता है?"],
+        "important_note": "शैक्षिक जानकारी।"
+      },
+      "mr": {
+        "patient_definition": "Fracture म्हणजे हाडातील तडा किंवा भंग.",
+        "clinical_context": "अहवालात नमूद तपशील वापरा.",
+        "discuss_questions": ["उपचार काय?", "फॉलो-अप कधी?"],
+        "important_note": "शैक्षणिक."
+      },
+      "te": {
+        "patient_definition": "Fracture అంటే ఎముకలో పగుళ్లు.",
+        "clinical_context": "నివేదిక వివరాలు మాత్రమే.",
+        "discuss_questions": ["చికిత్స ఏమిటి?", "ఫాలో-అప్?"],
+        "important_note": "విద్యా సమాచారం."
+      },
+      "pa": {
+        "patient_definition": "Fracture ਦਾ ਮਤਲਬ ਹADDੀ ਵਿੱਚ ਦਰਾਰ।",
+        "clinical_context": "ਰਿਪੋਰਟ ਦੇ ਵੇਰਵੇ।",
+        "discuss_questions": ["ਇਲਾਜ?", "ਫਾਲੋ-ਅਪ?"],
+        "important_note": "ਸਿੱਖਿਆਤਮਕ।"
+      },
+      "ta": {
+        "patient_definition": "Fracture என்பது எலும்பில் விரிசல்.",
+        "clinical_context": "அறிக்கை விவரங்கள் மட்டும்.",
+        "discuss_questions": ["சிகிச்சை?", "பின்தொடர்தல்?"],
+        "important_note": "கல்வி."
+      }
+    },
+    {
+      "id": "effusion",
+      "term": "effusion",
+      "synonyms": ["joint effusion", "pleural effusion"],
+      "body_parts": ["joint", "knee", "chest"],
+      "not_confused_with": ["soft tissue swelling alone"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "An effusion is a collection of fluid in a space where it is not normally present, such as around a joint or in the chest lining. The report and your doctor help determine significance.",
+        "clinical_context": "Do not infer cause beyond the report.",
+        "discuss_questions": [
+          "What might have caused this effusion?",
+          "Does this require drainage, treatment, or follow-up?",
+          "Could this explain my symptoms?"
+        ],
+        "important_note": "This explanation is informational and does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "Effusion (स्राव) का अर्थ है किसी स्थान पर तरल का जमाव, जैसे जोड़ या छाती की परत के आसपास।",
+        "clinical_context": "रिपोर्ट से आगे कारण न अनुमान लगाएं।",
+        "discuss_questions": ["कारण क्या हो सकता है?", "क्या इलाज या फॉलो-अप चाहिए?"],
+        "important_note": "शैक्षिक जानकारी।"
+      },
+      "mr": {
+        "patient_definition": "Effusion म्हणजे सामान्य नसलेल्या जागी द्रव साचणे.",
+        "clinical_context": "अहवालाच्या पलीकडे कारण अंदाज लावू नका.",
+        "discuss_questions": ["कारण?", "उपचार?"],
+        "important_note": "शैक्षणिक."
+      },
+      "te": {
+        "patient_definition": "Effusion అంటే సాధారణంగా లేని ప్రదేశంలో ద్రవం.",
+        "clinical_context": "నివేదికకు మించి కారణం అనుకోవద్దు.",
+        "discuss_questions": ["కారణం?", "చికిత్స?"],
+        "important_note": "విద్యా."
+      },
+      "pa": {
+        "patient_definition": "Effusion ਤਰਲ ਦਾ ਇਕੱਠ ਹੋਣਾ, ਜਿਵੇਂ ਜੋੜ ਜਾਂ ਛਾਤੀ周围।",
+        "clinical_context": "ਰਿਪੋਰਟ ਤੋਂ ਅੱਗੇ ਅਨੁਮਾਨ ਨਾ ਲਗਾਓ।",
+        "discuss_questions": ["ਕਾਰਨ?", "ਇਲਾਜ?"],
+        "important_note": "ਸਿੱਖਿਆਤਮਕ।"
+      },
+      "ta": {
+        "patient_definition": "Effusion என்பது பொதுவாக இல்லாத இடத்தில் தfluid.",
+        "clinical_context": "அறிக்கைக்கு அப்பால் காரணம் அனுமானிக்க வேண்டாம்.",
+        "discuss_questions": ["காரணம்?", "சிகிச்சை?"],
+        "important_note": "கல்வி."
+      }
+    },
+    {
+      "id": "consolidation",
+      "term": "consolidation",
+      "synonyms": ["pulmonary consolidation", "airspace consolidation"],
+      "body_parts": ["lung"],
+      "not_confused_with": ["simple opacity without context"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "Consolidation on a chest X-ray usually means an area of lung where air spaces appear filled (for example with fluid, cells, or other material). Doctors interpret this with your symptoms and may recommend further evaluation.",
+        "clinical_context": "Do not equate consolidation with a specific diagnosis without clinical context.",
+        "discuss_questions": [
+          "What could this consolidation represent in my case?",
+          "Do I need further tests or treatment?",
+          "Should I monitor specific symptoms?"
+        ],
+        "important_note": "This explanation is informational and does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "Consolidation छाती X-ray में फेफड़े का वह क्षेत्र है जहाँ हवा की जगह भरी हुई दिखती है।",
+        "clinical_context": "विशिष्ट निदान न अनुमान लगाएं।",
+        "discuss_questions": ["मेरे मामले में अर्थ?", "आगे की जांच?"],
+        "important_note": "शैक्षिक।"
+      },
+      "mr": {
+        "patient_definition": "Consolidation म्हणजe फुफ्फusात हवेच्या जागी भरण दिसणे.",
+        "clinical_context": "निदान अंदाज लावू नका.",
+        "discuss_questions": ["पुढील तपासणी?"],
+        "important_note": "शैक्षणिक."
+      },
+      "te": {
+        "patient_definition": "Consolidation ఊపిరితిత్తulos filled ప్రాంతం.",
+        "clinical_context": "నిర్దిష్ట నిర్ధారణ అనుకోవద్దు.",
+        "discuss_questions": ["తదుపరి పరీక్ష?"],
+        "important_note": "విద్యా."
+      },
+      "pa": {
+        "patient_definition": "Consolidation ਫੇਫੜਿਆਂ ਵਿੱਚ ਭਰੀ ਹੋਈ ਜਗ੍ਹਾ.",
+        "clinical_context": "ਨਿਦਾਨ ਨਾ ਠਹਿਰਾਓ।",
+        "discuss_questions": ["ਹੋਰ ਜਾਂਚ?"],
+        "important_note": "ਸਿੱਖਿਆਤਮਕ।"
+      },
+      "ta": {
+        "patient_definition": "Consolidation நுரையீரலில் நிரம்பிய பகுதி.",
+        "clinical_context": "குறிப்பிட்ட diagnosis அல்ல.",
+        "discuss_questions": ["மேலும் பரிசோதனை?"],
+        "important_note": "கல்வி."
+      }
+    },
+    {
+      "id": "nodule",
+      "term": "nodule",
+      "synonyms": ["nodules", "pulmonary nodule"],
+      "body_parts": ["lung"],
+      "not_confused_with": ["mass (size thresholds differ)"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "A nodule is a small rounded spot or growth seen on imaging. Size, appearance, and your clinical situation help determine whether follow-up is needed.",
+        "clinical_context": "Do not assume malignancy; follow report wording and doctor guidance.",
+        "discuss_questions": [
+          "Does this nodule need follow-up imaging?",
+          "What does the size or appearance mean in my report?",
+          "What symptoms should I watch for?"
+        ],
+        "important_note": "This explanation is informational and does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "Nodule इमेजिंग पर दिखने वाला छोटा गोल क्षेत्र है। फॉलो-अप आवश्यकता डॉक्टर तय करते हैं।",
+        "clinical_context": "कैंसर न अनुमान लगाएं।",
+        "discuss_questions": ["फॉलो-अप चाहिए?", "आकार का क्या अर्थ?"],
+        "important_note": "शैक्षिक।"
+      },
+      "mr": {
+        "patient_definition": "Nodule हा imaging वर दिसणारा लहान गोल भाग.",
+        "clinical_context": "गंभीर रोग अंदाज लावू नका.",
+        "discuss_questions": ["फॉलो-अप?"],
+        "important_note": "शैक्षणिक."
+      },
+      "te": {
+        "patient_definition": "Nodule చిన్న గుండ్రని మచ్చ.",
+        "clinical_context": "మ్యాలిగ్నన్సీ అనుకోవద్దు.",
+        "discuss_questions": ["ఫాలో-అప్?"],
+        "important_note": "విద్యా."
+      },
+      "pa": {
+        "patient_definition": "Nodule ਛੋਟa ਗੋਲ ਧੱਬਾ.",
+        "clinical_context": "ਕੈਂਸਰ ਨਾ ਅਨੁਮਾਨ ਲਗਾਓ।",
+        "discuss_questions": ["ਫਾਲੋ-ਅਪ?"],
+        "important_note": "ਸਿੱਖਿਆਤਮਕ।"
+      },
+      "ta": {
+        "patient_definition": "Nodule சிறிய வட்ட புள்ளி.",
+        "clinical_context": "புற்றுநோய் அனுமானிக்க வேண்டாம்.",
+        "discuss_questions": ["பின்தொடர்தல்?"],
+        "important_note": "கல்வி."
+      }
+    },
+    {
+      "id": "clinical_correlation",
+      "term": "clinical correlation",
+      "synonyms": ["clinical correlation recommended", "correlate clinically"],
+      "body_parts": [],
+      "not_confused_with": ["definitive diagnosis"],
+      "review_status": "clinically_reviewed",
+      "reviewed_by": "qualified medical reviewer",
+      "version": "1.0",
+      "en": {
+        "patient_definition": "Clinical correlation means the imaging finding should be interpreted together with your symptoms, physical examination, and medical history by your doctor.",
+        "clinical_context": "This phrase indicates uncertainty is appropriate until clinical context is applied.",
+        "discuss_questions": [
+          "How do my symptoms relate to this finding?",
+          "What additional history or tests would help?",
+          "What is the next step in my care?"
+        ],
+        "important_note": "This explanation is informational and does not independently establish a diagnosis."
+      },
+      "hi": {
+        "patient_definition": "Clinical correlation का अर्थ है कि इमेजिंग निष्कर्ष को आपके लक्षणों और जांच के साथ डॉक्टर को देखना चाहिए।",
+        "clinical_context": "अनिश्चितता सामान्य है जब तक clinical संदर्भ न मिले।",
+        "discuss_questions": ["लक्षण कैसे जुड़te हैं?", "अगला कदम?"],
+        "important_note": "शैक्षिक।"
+      },
+      "mr": {
+        "patient_definition": "Clinical correlation म्हणje finding लक्षणे आणि तपासणीसह पाहावी.",
+        "clinical_context": "clinical संदर्भ आवश्यक.",
+        "discuss_questions": ["पुढची पावले?"],
+        "important_note": "शैक्षणिक."
+      },
+      "te": {
+        "patient_definition": "Clinical correlation అంటే లక్షణాలతో కలిపి అర్థం చేసుకోవాలి.",
+        "clinical_context": "clinical context అవసరం.",
+        "discuss_questions": ["తదుపరి adım?"],
+        "important_note": "విద్యా."
+      },
+      "pa": {
+        "patient_definition": "Clinical correlation ਮਤਲਬ ਲੱਛਣਾਂ ਨਾਲ mil ਕੇ ਵyਖyਾ.",
+        "clinical_context": "clinical context ਲੋੜੀਂਦਾ.",
+        "discuss_questions": ["ਅਗla kadam?"],
+        "important_note": "ਸਿੱਖਿਆਤਮਕ।"
+      },
+      "ta": {
+        "patient_definition": "Clinical correlation அறிகுறிகளுடன் சேர்த்து பார்க்க வேண்டும்.",
+        "clinical_context": "clinical context தேவை.",
+        "discuss_questions": ["அடுத்த படி?"],
+        "important_note": "கல்வி."
+      }
+    }
+  ]
+}

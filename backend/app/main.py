@@ -11,6 +11,10 @@ from app.translation_service import translate_canonical
 from app.doctor_questions_service import generate_doctor_questions
 from app.ask_report_service import ask_report_question
 from app.languages import SUPPORTED_LANGUAGES, LANGUAGE_LABELS, normalize_language
+from app.term_explanation_service import explain_medical_term
+from app.report_conversation_service import report_conversation_turn
+from app.elevenlabs_service import synthesize_speech_base64
+from app.terminology_glossary import list_glossary_entries
 from PyPDF2 import PdfReader
 from urllib import request as urlrequest, error as urlerror
 from urllib.parse import quote
@@ -274,6 +278,103 @@ async def translate_analysis(request: Request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Translation is temporarily unavailable. Showing the original report.",
         )
+
+
+@app.get("/medical-terms")
+def medical_terms():
+    entries = list_glossary_entries()
+    return {
+        "version": "1.0",
+        "terms": [
+            {
+                "id": e.get("id"),
+                "term": e.get("term"),
+                "synonyms": e.get("synonyms") or [],
+                "review_status": e.get("review_status"),
+            }
+            for e in entries
+        ],
+    }
+
+
+@app.post("/synthesize-speech")
+async def synthesize_speech(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body")
+
+    text = body.get("text")
+    language = normalize_language(body.get("language", "en"))
+    if not text or not str(text).strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'text'")
+
+    try:
+        return synthesize_speech_base64(str(text).strip(), language)
+    except ValueError as exc:
+        message = str(exc)
+        if "not configured" in message.lower():
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=message)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to synthesize speech right now.",
+        )
+
+
+@app.post("/report-voice-chat")
+async def report_voice_chat(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body")
+
+    canonical = body.get("canonical")
+    message = body.get("message")
+    language = normalize_language(body.get("language", "en"))
+    history = body.get("conversation_history") or []
+    previous_report_summary = body.get("previous_report_summary")
+
+    if not canonical or not isinstance(canonical, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'canonical' object")
+    if not message or not str(message).strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'message'")
+
+    try:
+        return report_conversation_turn(
+            canonical,
+            str(message).strip(),
+            language,
+            history if isinstance(history, list) else [],
+            previous_report_summary,
+        )
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid message")
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to continue the conversation right now. Please try again.",
+        )
+
+
+@app.post("/explain-medical-term")
+async def explain_medical_term_route(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body")
+
+    canonical = body.get("canonical")
+    term = body.get("term")
+    language = normalize_language(body.get("language", "en"))
+
+    if not canonical or not isinstance(canonical, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'canonical' object")
+    if not term or not str(term).strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing 'term'")
+
+    return explain_medical_term(canonical, str(term).strip(), language)
 
 
 @app.post("/doctor-questions")

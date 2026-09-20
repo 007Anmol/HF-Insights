@@ -16,5 +16,8 @@ export function isAppLanguage(value: string | null | undefined): value is AppLan
 }
 
 export function normalizeAppLanguage(value: string | null | undefined): AppLanguage {
-  return isAppLanguage(value) ? value : 'en';
+  if (isAppLanguage(value)) {
+    return value;
+  }
+  return 'en';
 }

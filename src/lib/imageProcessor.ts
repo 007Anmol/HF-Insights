@@ -3,14 +3,27 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 export interface ProcessImageOptions {
   quality?: number;
+  mimeType?: string | null;
+}
+
+function isHeicLike(uri: string, fileName: string, mimeType?: string | null): boolean {
+  const mime = (mimeType || '').toLowerCase();
+  if (mime.includes('heic') || mime.includes('heif')) return true;
+  const lowerUri = uri.toLowerCase();
+  const lowerName = fileName.toLowerCase();
+  return (
+    lowerUri.includes('.heic') ||
+    lowerUri.includes('.heif') ||
+    lowerName.endsWith('.heic') ||
+    lowerName.endsWith('.heif') ||
+    lowerUri.startsWith('data:image/heic') ||
+    lowerUri.startsWith('data:image/heif')
+  );
 }
 
 export async function preprocessImage(uri: string, fileName: string = 'image.jpg', options: ProcessImageOptions = {}): Promise<string> {
   const quality = options.quality ?? 0.8;
-
-  const isHeic = uri.toLowerCase().includes('.heic') || uri.toLowerCase().includes('.heif') || 
-                 fileName.toLowerCase().endsWith('.heic') || fileName.toLowerCase().endsWith('.heif') ||
-                 uri.startsWith('data:image/heic') || uri.startsWith('data:image/heif');
+  const isHeic = isHeicLike(uri, fileName, options.mimeType);
 
   // Use web-specific library for browser compatibility (heic2any)
   if (Platform.OS === 'web') {
@@ -49,15 +62,29 @@ export async function preprocessImage(uri: string, fileName: string = 'image.jpg
       try {
         const manipulated = await ImageManipulator.manipulateAsync(
           uri,
-          [], // No resizing, just format conversion
-          { format: ImageManipulator.SaveFormat.JPEG, compress: quality }
+          [],
+          { format: ImageManipulator.SaveFormat.JPEG, compress: quality },
         );
         return manipulated.uri;
       } catch (error) {
-        console.warn('Native image preprocessing failed. Returning original URI.', error);
-        throw new Error('Failed to process HEIC image natively.');
+        console.warn('Native HEIC conversion failed, retrying as JPEG export.', error);
       }
     }
+
+    // iOS photo library often omits .heic in the URI — re-encode as JPEG for reliable upload/analyze.
+    if (Platform.OS === 'ios' && !uri.toLowerCase().endsWith('.png')) {
+      try {
+        const manipulated = await ImageManipulator.manipulateAsync(
+          uri,
+          [],
+          { format: ImageManipulator.SaveFormat.JPEG, compress: quality },
+        );
+        return manipulated.uri;
+      } catch {
+        return uri;
+      }
+    }
+
     return uri;
   }
 }

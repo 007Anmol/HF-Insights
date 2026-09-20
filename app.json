@@ -3,7 +3,6 @@
     "name": "HealthFutureInsights",
     "slug": "health-future-insights",
     "version": "1.0.2",
-    "sdkVersion": "54.0.0",
     "icon": "./assets/icon.jpeg",
     "scheme": "hfi",
     "orientation": "portrait",
@@ -19,7 +18,9 @@
       "buildNumber": "20",
       "infoPlist": {
         "NSCameraUsageDescription": "HF Insights uses your camera to capture X-ray images for AI-based analysis and provide simplified health insights.",
-        "NSPhotoLibraryUsageDescription": "HF Insights accesses your photo library so you can upload X-ray images for analysis and receive easy-to-understand medical insights."
+        "NSPhotoLibraryUsageDescription": "HF Insights accesses your photo library so you can upload X-ray images for analysis and receive easy-to-understand medical insights.",
+        "NSMicrophoneUsageDescription": "HF Insights uses the microphone so you can ask questions about your X-ray report by voice.",
+        "NSSpeechRecognitionUsageDescription": "HF Insights uses speech recognition to understand your questions about your report."
       }
     },
     "android": {
@@ -27,10 +28,10 @@
       "versionCode": 12,
       "permissions": [
         "CAMERA",
-        "INTERNET"
+        "INTERNET",
+        "RECORD_AUDIO"
       ],
       "blockedPermissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.VIBRATE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
@@ -51,7 +52,17 @@
             "kotlinVersion": "2.0.21"
           }
         }
-      ]
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "HF Insights uses the microphone so you can ask questions about your X-ray report by voice.",
+          "speechRecognitionPermission": "HF Insights uses speech recognition to understand your questions about your report."
+        }
+      ],
+      "expo-localization",
+      "expo-status-bar",
+      "expo-font"
     ],
     "extra": {
       "supabaseUrl": "https://sjqpojzczgabguzkjljf.supabase.co",
