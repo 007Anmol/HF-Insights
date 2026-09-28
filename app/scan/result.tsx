@@ -1,7 +1,19 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import Toast from 'react-native-toast-message';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Linking,
+  TouchableOpacity,
+  Pressable,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../../src/context/AppContext';
 import { Card } from '../../src/components/Card';
 import { Button } from '../../src/components/Button';
@@ -11,8 +23,24 @@ import { theme } from '../../src/theme';
 import { InfoBox } from '../../src/components/InfoBox';
 import ResultsLayout from '../../src/components/ResultsLayout';
 import { ReportWhatsNext } from '../../src/components/ReportWhatsNext';
-import { BACKEND_URL } from '../../src/insights';
-import { useEffect } from 'react';
+import { LanguageSelector } from '../../src/components/LanguageSelector';
+import { ConfidenceDisplay } from '../../src/components/ConfidenceDisplay';
+import { AskMyReport } from '../../src/components/AskMyReport';
+import { DoctorQuestions } from '../../src/components/DoctorQuestions';
+import { ReportNavBar, type ReportNavSection } from '../../src/components/ReportNavBar';
+import { MedicalTermRichText } from '../../src/components/MedicalTermRichText';
+import { TermExplanationSheet } from '../../src/components/TermExplanationSheet';
+import type { CanonicalInsights } from '../../src/lib/canonicalInsights';
+import { useReportScrollNav } from '../../src/hooks/useReportScrollNav';
+import {
+  generateReportSections,
+  isBackendReportFeaturesLimited,
+  translateAnalysis,
+} from '../../src/insights';
+import { buildDisplayContentKey } from '../../src/lib/displayFingerprint';
+import { getCanonicalFromInsights, getDisplayInsights } from '../../src/lib/canonicalInsights';
+import { AppLanguage } from '../../src/types/language';
+import { detectDefaultLanguage, loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
 
 const HEALTH_CITATIONS = [
   { title: 'Mayo Clinic', url: 'https://www.mayoclinic.org/' },
@@ -106,7 +134,8 @@ const Checklist: React.FC = () => {
 export default function ScanResult() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { scans } = useApp();
+  const insets = useSafeAreaInsets();
+  const { scans, updateScan } = useApp();
 
   const scan = useMemo(() => scans.find(s => s.id === String(params.id)), [scans, params.id]);
 
@@ -117,11 +146,124 @@ export default function ScanResult() {
   const [sections, setSections] = useState<any | null>(null);
   const [loadingSections, setLoadingSections] = useState(false);
   const [sectionsError, setSectionsError] = useState<string | null>(null);
+  const [displayLanguage, setDisplayLanguage] = useState<AppLanguage>(() => detectDefaultLanguage());
+  const [translating, setTranslating] = useState(false);
+  const [translationNotice, setTranslationNotice] = useState<string | null>(null);
+  const [termSheetTerm, setTermSheetTerm] = useState<string | null>(null);
+  const [voiceConversationOpen, setVoiceConversationOpen] = useState(false);
+  const [voiceLoadError, setVoiceLoadError] = useState<string | null>(null);
+  const [backendLimited, setBackendLimited] = useState(false);
+  const [VoiceConversationModal, setVoiceConversationModal] = useState<
+    React.ComponentType<{
+      visible: boolean;
+      onClose: () => void;
+      canonical: CanonicalInsights;
+      displayLanguage: AppLanguage;
+      previousReportSummary?: string;
+      reportTitle?: string;
+    }> | null
+  >(null);
   const insights = scan?.insights;
-  const attention_level = (insights as any)?.attention_level as string | undefined;
 
   useEffect(() => {
-    if (!insights) return;
+    loadDisplayLanguage().then(setDisplayLanguage);
+  }, []);
+
+  const canonical = useMemo(
+    () => (insights ? getCanonicalFromInsights(insights) : null),
+    [insights],
+  );
+
+  useEffect(() => {
+    if (!voiceConversationOpen || !canonical || VoiceConversationModal) return;
+    setVoiceLoadError(null);
+    // Metro resolves this path; Node16 moduleResolution requires an extension for tsc only.
+    void import('../../src/components/ReportVoiceConversation' as `${string}.tsx`)
+      .then((mod) => {
+        setVoiceConversationModal(() => mod.ReportVoiceConversation);
+      })
+      .catch(() => {
+        setVoiceLoadError('Voice chat could not load. Reload the app and try again.');
+        setVoiceConversationOpen(false);
+      });
+  }, [voiceConversationOpen, canonical, VoiceConversationModal]);
+
+  const display = useMemo(
+    () => (insights ? getDisplayInsights(insights, displayLanguage) : null),
+    [insights, displayLanguage],
+  );
+
+  const displayContentKey = useMemo(
+    () => buildDisplayContentKey(displayLanguage, display),
+    [displayLanguage, display],
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    void isBackendReportFeaturesLimited().then((limited) => {
+      if (mounted) setBackendLimited(limited);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!voiceLoadError) return;
+    Toast.show({ type: 'error', text1: 'Voice unavailable', text2: voiceLoadError });
+  }, [voiceLoadError]);
+
+  const previousReportSummary = useMemo(() => {
+    if (!scan) return undefined;
+    const older = scans
+      .filter((s) => s.id !== scan.id)
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (!older?.insights) return undefined;
+    const c = getCanonicalFromInsights(older.insights);
+    return c.summary || c.findings_text?.[0];
+  }, [scan, scans]);
+
+  const attention_level = display?.attention_level || (insights as any)?.attention_level;
+
+  const hasGuidanceContent = useMemo(() => {
+    if (loadingSections) return true;
+    if (!sections) return false;
+    return Boolean(
+      (Array.isArray(sections.recommended_actions) && sections.recommended_actions.length > 0) ||
+      (Array.isArray(sections.lifestyle_recommendations) && sections.lifestyle_recommendations.length > 0) ||
+      (Array.isArray(sections.checklist) && sections.checklist.length > 0) ||
+      (Array.isArray(sections.seek_medical_attention) && sections.seek_medical_attention.length > 0) ||
+      typeof sections.ai_confidence === 'number' ||
+      Boolean(sections.expected_outcome),
+    );
+  }, [loadingSections, sections]);
+
+  const navSections = useMemo((): ReportNavSection[] => {
+    if (!insights) return [];
+    const items: ReportNavSection[] = [{ id: 'findings', label: 'Findings' }];
+    if (canonical?.confidence) items.push({ id: 'confidence', label: 'Confidence' });
+    if (hasGuidanceContent || sectionsError) items.push({ id: 'guidance', label: 'Guidance' });
+    items.push({ id: 'references', label: 'References' });
+    if (canonical) {
+      items.push({ id: 'ask', label: 'Ask' });
+      items.push({ id: 'doctor', label: 'Doctor Qs' });
+    }
+    items.push({ id: 'next', label: 'Next Steps' });
+    return items;
+  }, [insights, canonical, hasGuidanceContent, sectionsError]);
+
+  const navSectionIds = useMemo(() => navSections.map((section) => section.id), [navSections]);
+  const {
+    scrollRef,
+    activeSection,
+    setHeaderHeight,
+    registerSection,
+    scrollToSection,
+    onScroll,
+  } = useReportScrollNav(navSectionIds, theme.spacing.lg);
+
+  useEffect(() => {
+    if (!insights || !canonical) return;
 
     let mounted = true;
     async function fetchSections() {
@@ -129,34 +271,25 @@ export default function ScanResult() {
       setSectionsError(null);
       try {
         const payload = {
+          language: displayLanguage,
           insights: {
-            xray_type: (insights as any)?.xray_type,
-            attention_level: (insights as any)?.attention_level,
-            findings: (insights as any)?.findings,
-            possible_conditions: (insights as any)?.possible_conditions,
-            possible_symptoms: (insights as any)?.possible_symptoms,
-            references: (insights as any)?.references,
-            confidence_score: (insights as any)?.confidence_score,
+            xray_type: insights?.xray_type,
+            attention_level: display?.attention_level || insights?.attention_level,
+            findings: display?.findings || insights?.findings,
+            possible_conditions: display?.possible_conditions || insights?.possible_conditions,
+            possible_symptoms: display?.possible_symptoms || insights?.possible_symptoms,
+            references: insights?.references,
+            confidence_score: insights?.confidence_score,
           },
         };
 
-        const res = await fetch(`${BACKEND_URL}/generate-sections`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        const text = await res.text();
-        console.log('generate-sections raw response:', res.status, text);
-        if (!res.ok) throw new Error(`Failed to generate sections: ${res.status}`);
-        const data = JSON.parse(text || '{}');
+        const data = await generateReportSections(payload);
         if (mounted) {
-          setSections(hasSectionContent(data) ? data : buildSectionsFromInsights(insights));
+          setSections(hasSectionContent(data) ? data : buildSectionsFromInsights({ ...insights, findings: display?.findings }));
         }
-      } catch (err) {
-        console.warn('generate-sections error', err);
+      } catch {
         if (mounted) {
-          setSections(buildSectionsFromInsights(insights));
+          setSections(buildSectionsFromInsights({ ...insights, findings: display?.findings }));
           setSectionsError('Generated sections are unavailable right now. The scan insights below are still available.');
         }
       } finally {
@@ -166,7 +299,63 @@ export default function ScanResult() {
 
     fetchSections();
     return () => { mounted = false; };
-  }, [insights]);
+  }, [insights, displayContentKey, display?.findings]);
+
+  const handleLanguageChange = async (lang: AppLanguage) => {
+    if (!scan || !insights || !canonical) return;
+    const previousLang = displayLanguage;
+    setDisplayLanguage(lang);
+    await saveDisplayLanguage(lang);
+    setTranslationNotice(null);
+
+    if (lang === 'en') return;
+    if (insights.translations?.[lang] && !(insights.translations[lang] as { translation_fallback?: boolean })?.translation_fallback) return;
+
+    setTranslating(true);
+    try {
+      const translated = await translateAnalysis(canonical, lang);
+      if (translated.translation_fallback) {
+        setDisplayLanguage(previousLang);
+        await saveDisplayLanguage(previousLang);
+        setTranslationNotice('Translation is temporarily unavailable. Showing the original report.');
+        return;
+      }
+      await updateScan(scan.id, (current) => ({
+        ...current,
+        insights: {
+          ...current.insights,
+          translations: {
+            ...(current.insights.translations || {}),
+            [lang]: translated,
+          },
+        },
+      }));
+    } catch (err: any) {
+      setDisplayLanguage(previousLang);
+      await saveDisplayLanguage(previousLang);
+      if (err?.message === 'TRANSLATION_API_UNAVAILABLE') {
+        setTranslationNotice('Translation service is not available yet. Please update the app backend or try again later.');
+      } else {
+        setTranslationNotice('Translation is temporarily unavailable. Showing the original report.');
+      }
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const cacheDoctorQuestions = async (questions: string[], lang: AppLanguage) => {
+    if (!scan) return;
+    await updateScan(scan.id, (current) => ({
+      ...current,
+      insights: {
+        ...current.insights,
+        doctor_questions: {
+          ...(current.insights.doctor_questions || {}),
+          [lang]: questions,
+        },
+      },
+    }));
+  };
 
   if (!scan || !insights) {
     return (
@@ -186,9 +375,13 @@ export default function ScanResult() {
     );
   }
 
-  const renderPrimaryInsights = () => (
+  const openTermExplanation = (term: string) => setTermSheetTerm(term);
+
+  const renderPrimaryInsights = () => {
+    if (!display || !canonical) return null;
+    return (
     <>
-      {insights.findings?.length ? (
+      {display.findings?.length ? (
         <>
           <View style={styles.sectionHeader}>
             <LinearGradient
@@ -203,17 +396,17 @@ export default function ScanResult() {
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            {insights.findings.map((item, idx) => (
+            {display.findings.map((item: string, idx: number) => (
               <View key={`finding-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
                   <View style={styles.bulletDot} />
                 </View>
-                <Text style={styles.bodyText}>{item}</Text>
+                <MedicalTermRichText text={item} style={styles.bodyText} onExplainTerm={openTermExplanation} />
               </View>
             ))}
           </Card>
         </>
-      ) : insights.summary ? (
+      ) : display.summary ? (
         <>
           <View style={styles.sectionHeader}>
             <LinearGradient
@@ -224,16 +417,16 @@ export default function ScanResult() {
             >
               <Ionicons name="reader-outline" size={20} color={theme.colors.primary} />
             </LinearGradient>
-            <Text style={styles.sectionTitle}>Summary</Text>
+            <Text style={styles.sectionTitle}>Overall Summary</Text>
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            <Text style={styles.bodyText}>{insights.summary}</Text>
+            <MedicalTermRichText text={display.summary} style={styles.bodyText} onExplainTerm={openTermExplanation} />
           </Card>
         </>
       ) : null}
 
-      {insights.possible_conditions?.length ? (
+      {display.possible_conditions?.length ? (
         <>
           <Spacer size={28} />
           <View style={styles.sectionHeader}>
@@ -249,19 +442,19 @@ export default function ScanResult() {
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            {insights.possible_conditions.map((r, idx) => (
+            {display.possible_conditions.map((r: string, idx: number) => (
               <View key={`cond-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
                   <Ionicons name="checkmark-circle" size={18} color={theme.colors.secondary} />
                 </View>
-                <Text style={styles.bodyText}>{r}</Text>
+                <MedicalTermRichText text={r} style={styles.bodyText} onExplainTerm={openTermExplanation} />
               </View>
             ))}
           </Card>
         </>
       ) : null}
 
-      {insights.possible_symptoms?.length ? (
+      {display.possible_symptoms?.length ? (
         <>
           <Spacer size={28} />
           <View style={styles.sectionHeader}>
@@ -277,38 +470,118 @@ export default function ScanResult() {
           </View>
           <Spacer size={12} />
           <Card elevated variant="gradient">
-            {insights.possible_symptoms.map((t, idx) => (
+            {display.possible_symptoms.map((t: string, idx: number) => (
               <View key={`sym-${idx}`} style={[styles.listItem, idx > 0 && styles.listItemBorder]}>
                 <View style={styles.bulletPoint}>
                   <Ionicons name="heart-outline" size={16} color={theme.colors.info} />
                 </View>
-                <Text style={styles.bodyText}>{t}</Text>
+                <MedicalTermRichText text={t} style={styles.bodyText} onExplainTerm={openTermExplanation} />
               </View>
             ))}
           </Card>
         </>
       ) : null}
 
-      {(insights.findings?.length || insights.summary || insights.possible_conditions?.length || insights.possible_symptoms?.length) && (
+      {(display.findings?.length || display.summary || display.possible_conditions?.length || display.possible_symptoms?.length) && (
         <Spacer size={28} />
       )}
     </>
   );
+  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
-      <ResultsLayout
-        title={insights.title}
-        attentionLevel={attention_level}
-        xrayType={insights.xray_type}
-        confidenceScore={insights.confidence_score}
-        createdAt={scan.createdAt}
-        disclaimer="HF Insights provides educational insights only. This is not a medical diagnosis. Always consult a healthcare professional for medical advice."
+    <View style={styles.screen}>
+      <View style={[styles.topBar, { paddingTop: insets.top + theme.spacing.xs }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="chevron-back" size={22} color={theme.colors.primary} />
+          <Text style={styles.backLabel}>Back</Text>
+        </Pressable>
+        <Text style={styles.topBarTitle} numberOfLines={1}>
+          {insights.title}
+        </Text>
+        <Pressable
+          onPress={() => setVoiceConversationOpen(true)}
+          style={styles.voiceHeaderButton}
+          accessibilityRole="button"
+          accessibilityLabel="Talk about your report"
+        >
+          <Ionicons name="mic" size={22} color={theme.colors.primary} />
+        </Pressable>
+      </View>
+
+      <ReportNavBar
+        sections={navSections}
+        activeId={activeSection}
+        onSelect={scrollToSection}
+      />
+
+      <ScrollView
+        ref={scrollRef}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        style={styles.container}
+        contentContainerStyle={styles.inner}
+        showsVerticalScrollIndicator={false}
       >
+        <View collapsable={false}>
+          <ResultsLayout
+            title={insights.title}
+            attentionLevel={attention_level}
+            xrayType={insights.xray_type}
+            confidenceScore={insights.confidence_score}
+            createdAt={scan.createdAt}
+            onHeaderLayout={setHeaderHeight}
+            disclaimer="HF Insights provides educational insights only. This is not a medical diagnosis. Always consult a healthcare professional for medical advice."
+          >
 
-      {renderPrimaryInsights()}
+          <View onLayout={registerSection('findings')} collapsable={false}>
+            {renderPrimaryInsights()}
 
-      {/* Dynamic generated sections from backend */}
+            <Card elevated>
+              <Text style={styles.sectionTitle}>Report Language</Text>
+              <Spacer size={8} />
+              <LanguageSelector value={displayLanguage} onChange={handleLanguageChange} compact />
+              {translating && (
+                <>
+                  <Spacer size={8} />
+                  <Text style={styles.metaText}>Updating report language...</Text>
+                </>
+              )}
+            </Card>
+
+            {translationNotice && (
+              <>
+                <Spacer size={12} />
+                <InfoBox type="warning" message={translationNotice} />
+              </>
+            )}
+
+            {backendLimited && (
+              <>
+                <Spacer size={12} />
+                <InfoBox
+                  type="info"
+                  message="Some AI features use report-only summaries until the server is updated (translation, Ask My Report, voice, ElevenLabs). Scan analysis still works."
+                />
+              </>
+            )}
+          </View>
+
+          <Spacer size={20} />
+
+          {canonical?.confidence && (
+            <View onLayout={registerSection('confidence')} collapsable={false}>
+              <ConfidenceDisplay confidence={canonical.confidence} />
+              <Spacer size={28} />
+            </View>
+          )}
+
+          <View onLayout={registerSection('guidance')} collapsable={false}>
       {loadingSections ? (
         <>
           <View style={styles.sectionHeader}>
@@ -453,7 +726,7 @@ export default function ScanResult() {
             </>
           )}
 
-          {typeof sections.ai_confidence === 'number' && (
+          {typeof sections.ai_confidence === 'number' && !canonical?.confidence && (
             <>
               <View style={styles.sectionHeader}>
                 <LinearGradient
@@ -516,7 +789,9 @@ export default function ScanResult() {
           <Spacer size={28} />
         </>
       ) : null}
+          </View>
 
+      <View onLayout={registerSection('references')} collapsable={false}>
       {randomCitations.length > 0 ? (
         <>
           <View style={styles.sectionHeader}>
@@ -561,22 +836,127 @@ export default function ScanResult() {
           <Spacer size={28} />
         </>
       ) : null}
+      </View>
 
       <Spacer size={32} />
 
-      <ReportWhatsNext
-        title={insights.title}
-        createdAt={scan.createdAt}
-        insights={insights}
-        onAnalyzeAnother={() => router.push('/scan/new')}
-        onReturnDashboard={() => router.replace('/dashboard')}
-      />
-      </ResultsLayout>
-    </ScrollView>
+      {canonical && (
+        <>
+          <View onLayout={registerSection('ask')} collapsable={false}>
+            <AskMyReport
+              canonical={canonical}
+              language={displayLanguage}
+              previousReportSummary={previousReportSummary}
+            />
+          </View>
+          <Spacer size={28} />
+          <View onLayout={registerSection('doctor')} collapsable={false}>
+            <DoctorQuestions
+              canonical={canonical}
+              language={displayLanguage}
+              contentKey={`${scan.id}-${displayContentKey}`}
+              cachedQuestions={insights.doctor_questions?.[displayLanguage]}
+              onCached={cacheDoctorQuestions}
+            />
+          </View>
+          <Spacer size={28} />
+        </>
+      )}
+
+      <View onLayout={registerSection('next')} collapsable={false}>
+        <ReportWhatsNext
+          title={insights.title}
+          createdAt={scan.createdAt}
+          insights={insights}
+          shareSnapshot={{
+            xray_type: insights.xray_type,
+            findings: display?.findings,
+            possible_conditions: display?.possible_conditions,
+            possible_symptoms: display?.possible_symptoms,
+            summary: display?.summary,
+          }}
+          onAnalyzeAnother={() => router.push('/scan/new')}
+          onReturnDashboard={() => router.replace('/dashboard')}
+        />
+      </View>
+          </ResultsLayout>
+        </View>
+      </ScrollView>
+
+      {canonical && (
+        <>
+          <TermExplanationSheet
+            visible={Boolean(termSheetTerm)}
+            term={termSheetTerm}
+            canonical={canonical}
+            language={displayLanguage}
+            onClose={() => setTermSheetTerm(null)}
+          />
+          {VoiceConversationModal ? (
+            <VoiceConversationModal
+              visible={voiceConversationOpen}
+              onClose={() => setVoiceConversationOpen(false)}
+              canonical={canonical}
+              displayLanguage={displayLanguage}
+              previousReportSummary={previousReportSummary}
+              reportTitle={insights.title}
+            />
+          ) : null}
+          <Modal visible={voiceConversationOpen && !VoiceConversationModal} transparent animationType="fade">
+            <View style={styles.voiceLoadingOverlay}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+          </Modal>
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: theme.colors.background.primary,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.layout.screenPadding,
+    paddingBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border.light,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
+    paddingRight: theme.spacing.sm,
+  },
+  backLabel: {
+    color: theme.colors.primary,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  topBarTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
+  voiceHeaderButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceLoadingOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
   container: { 
     backgroundColor: theme.colors.background.primary,
     flex: 1,

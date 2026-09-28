@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,9 +10,11 @@ import { Card } from '../../src/components/Card';
 import { Spacer } from '../../src/components/Spacer';
 import { InfoBox } from '../../src/components/InfoBox';
 import { LoadingOverlay } from '../../src/components/LoadingOverlay';
-import { ToggleButton } from '../../src/components/ToggleButton';
 import { useApp } from '../../src/context/AppContext';
 import { generateInsightsFromImage, generateInsightsFromPdf, setInsightsLanguage } from '../../src/insights';
+import { LanguageSelector } from '../../src/components/LanguageSelector';
+import { AppLanguage } from '../../src/types/language';
+import { detectDefaultLanguage, loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
 import { supabase } from '../../src/supabase';
 import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +29,20 @@ export default function NewScan() {
   const [uri, setUri] = useState<string | null>(null);
   const [isPdf, setIsPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const [language, setLanguage] = useState<AppLanguage>(() => detectDefaultLanguage());
+
+  useEffect(() => {
+    loadDisplayLanguage().then((lang) => {
+      setLanguage(lang);
+      setInsightsLanguage(lang);
+    });
+  }, []);
+
+  const onLanguageChange = async (lang: AppLanguage) => {
+    setLanguage(lang);
+    setInsightsLanguage(lang);
+    await saveDisplayLanguage(lang);
+  };
 
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -44,7 +59,7 @@ export default function NewScan() {
       try {
         const asset = res.assets[0];
         let originalName = asset.fileName || asset.uri.split('/').pop() || 'image.jpg';
-        const convertedUri = await preprocessImage(asset.uri, originalName);
+        const convertedUri = await preprocessImage(asset.uri, originalName, { mimeType: asset.mimeType });
         setUri(convertedUri);
         setIsPdf(false);
       } catch (err: any) {
@@ -67,7 +82,7 @@ export default function NewScan() {
       try {
         const asset = res.assets[0];
         let originalName = asset.fileName || 'camera_image.jpg';
-        const convertedUri = await preprocessImage(asset.uri, originalName);
+        const convertedUri = await preprocessImage(asset.uri, originalName, { mimeType: asset.mimeType });
         setUri(convertedUri);
         setIsPdf(false);
       } catch (err: any) {
@@ -318,17 +333,14 @@ export default function NewScan() {
           <View style={styles.languageContainer}>
             <View style={styles.languageHeader}>
               <Ionicons name="language-outline" size={22} color={theme.colors.primary} />
-              <Text style={styles.languageLabel}>Insights Language</Text>
+              <Text style={styles.languageLabel}>Report Language</Text>
             </View>
+            <Spacer size={8} />
+            <Text style={styles.languageHint}>
+              X-ray is analyzed once in English. Your selected language is used for the report display.
+            </Text>
             <Spacer size={12} />
-            <ToggleButton
-              options={[
-                { label: 'English', value: 'en' },
-                { label: 'हिंदी', value: 'hi' },
-              ]}
-              value={language}
-              onChange={(val) => setLanguage(val as 'en' | 'hi')}
-            />
+            <LanguageSelector value={language} onChange={onLanguageChange} />
           </View>
         </Card>
 
@@ -495,6 +507,11 @@ const styles = StyleSheet.create({
     color: theme.colors.text.primary,
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
+  },
+  languageHint: {
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.xs,
+    lineHeight: theme.typography.fontSize.xs * 1.4,
   },
   langToggle: {
     flexDirection: 'row',
