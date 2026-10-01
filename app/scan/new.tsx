@@ -360,11 +360,6 @@ export default function NewScan() {
           </View>
           <View style={styles.divider} />
           <View style={styles.featureItem}>
-            <Ionicons name="lock-closed-outline" size={24} color={theme.colors.primary} />
-            <Text style={styles.featureText}>HIPAA compliant storage</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.featureItem}>
             <Ionicons name="time-outline" size={24} color={theme.colors.warning} />
             <Text style={styles.featureText}>Results in under 30 seconds</Text>
           </View>
