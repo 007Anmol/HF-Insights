@@ -37,33 +37,6 @@ app.add_middleware(
 )
 
 # 🔹 Health check (used by Render + warm-up)
-
-@app.get("/supabase-diagnostic")
-def supabase_diagnostic():
-    import socket
-    import urllib.request
-    url = config.get_supabase_url()
-    result = {"supabase_url_configured": bool(url)}
-    if not url:
-        return result
-    host = url.replace("https://", "").replace("http://", "").split("/")[0]
-    try:
-        socket.gethostbyname(host)
-        result["dns_resolution"] = True
-    except Exception as e:
-        result["dns_resolution"] = False
-        result["dns_error"] = type(e).__name__
-        return result
-    try:
-        req = urllib.request.Request(url, method="HEAD")
-        with urllib.request.urlopen(req, timeout=10) as response:
-            result["https_connection"] = True
-            result["http_status"] = response.status
-    except Exception as e:
-        result["https_connection"] = False
-        result["https_error"] = type(e).__name__
-    return result
-
 @app.get("/health")
 @app.head("/health")
 def health():
