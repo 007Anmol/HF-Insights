@@ -20,6 +20,31 @@ from urllib import request as urlrequest, error as urlerror
 from urllib.parse import quote
 import io
 import json
+from PIL import Image, ImageOps
+
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except Exception:
+    pass
+
+
+def _normalize_image_bytes(image_bytes: bytes) -> bytes:
+    """Convert any supported upload (HEIC, PNG, WEBP, etc.) to a reasonably sized RGB JPEG."""
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        img = ImageOps.exif_transpose(img)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        img.thumbnail((2048, 2048))
+        out = io.BytesIO()
+        img.save(out, format="JPEG", quality=90)
+        return out.getvalue()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported or corrupted image. Please upload a JPG or PNG photo of the X-ray.",
+        ) from exc
 
 app = FastAPI(
     title="X-ray Analysis API",
@@ -192,6 +217,8 @@ async def analyze_image(
                 detail="Empty image file"
             )
 
+        image_bytes = _normalize_image_bytes(image_bytes)
+
         try:
             raw = _analyze_raw_image(image_bytes)
             canonical = to_canonical(raw)
@@ -206,7 +233,7 @@ async def analyze_image(
             return {**canonical, "display_language": "en"}
 
         except Exception as err:
-            print(f"Analysis failed: {type(err).__name__}: {err}")
+            print(f"Analysis failed: {type(err).__name__}: {err}", flush=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Unable to analyze scan right now. Please try again shortly.",

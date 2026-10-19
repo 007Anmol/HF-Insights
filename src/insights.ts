@@ -44,9 +44,8 @@ export type Insights = ReturnType<typeof buildInsightsPayloadFromApi> & {
 };
 
 export const BACKEND_URL =
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_BACKEND_URL) ||
-  'https://healthfutureinsights.onrender.com';
-
+  (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_BACKEND_URL) ||
+  "https://hf-insights.onrender.com";
 const COLD_START_STATUS_CODES = new Set([502, 503, 504]);
 const ANALYZE_TIMEOUT_MS = 90000;
 
