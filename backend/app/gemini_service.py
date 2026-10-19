@@ -224,7 +224,7 @@ Each list should contain at least 2 items where appropriate.
         "Simple description of what is visible in the image or report"
     ],
     "possible_conditions": [
-        "Common condition this finding may be associated with"
+        "One complete, plain-language sentence (12-25 words) naming a pattern this may be associated with and briefly why, e.g. \"The metal plate and screws suggest the bone is healing after a previous fracture repair.\" Non-confirming, ending with a period."
     ],
     "possible_symptoms": [
         "Common symptom in simple everyday words"

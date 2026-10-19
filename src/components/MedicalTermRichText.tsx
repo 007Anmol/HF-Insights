@@ -17,74 +17,78 @@ export const MedicalTermRichText: React.FC<Props> = ({ text, style, onExplainTer
   }
 
   const segments: React.ReactNode[] = [];
+  const terms: string[] = [];
   let cursor = 0;
 
   matches.forEach((match, index) => {
+    if (match.start < cursor) return; // skip overlapping matches
     if (match.start > cursor) {
-      segments.push(
-        <Text key={`plain-${index}`} style={[styles.body, style]}>
-          {text.slice(cursor, match.start)}
-        </Text>,
-      );
+      segments.push(text.slice(cursor, match.start));
     }
-
     segments.push(
-      <View key={`term-${index}`} style={styles.termBlock}>
-        <Pressable onPress={() => onExplainTerm(match.phrase)} accessibilityRole="button">
-          <Text style={[styles.body, styles.termText, style]}>{text.slice(match.start, match.end)}</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => onExplainTerm(match.phrase)}
-          style={styles.chip}
-          accessibilityRole="button"
-          accessibilityLabel={`What does ${match.phrase} mean?`}
-        >
-          <Text style={styles.chipText}>What does this mean?</Text>
-        </Pressable>
-      </View>,
+      <Text
+        key={`term-${index}`}
+        style={styles.termText}
+        onPress={() => onExplainTerm(match.phrase)}
+        accessibilityRole="button"
+      >
+        {text.slice(match.start, match.end)}
+      </Text>,
     );
+    if (!terms.includes(match.phrase)) terms.push(match.phrase);
     cursor = match.end;
   });
 
   if (cursor < text.length) {
-    segments.push(
-      <Text key="plain-tail" style={[styles.body, style]}>
-        {text.slice(cursor)}
-      </Text>,
-    );
+    segments.push(text.slice(cursor));
   }
 
-  return <View style={styles.wrap}>{segments}</View>;
+  return (
+    <View style={styles.wrap}>
+      <Text style={[styles.body, style]}>{segments}</Text>
+      <View style={styles.chipRow}>
+        {terms.map((term) => (
+          <Pressable
+            key={term}
+            onPress={() => onExplainTerm(term)}
+            style={styles.chip}
+            accessibilityRole="button"
+            accessibilityLabel={`What does ${term} mean?`}
+          >
+            <Text style={styles.chipText}>
+              {terms.length > 1 ? `What is “${term}”?` : 'What does this mean?'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   wrap: {
     flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
   },
   body: {
     color: theme.colors.text.primary,
     fontSize: theme.typography.fontSize.base,
     lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
   },
-  termBlock: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    marginVertical: 2,
-  },
   termText: {
     color: theme.colors.primary,
     fontWeight: theme.typography.fontWeight.semibold,
     textDecorationLine: 'underline',
   },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 6,
+  },
   chip: {
-    marginLeft: 6,
-    marginTop: 2,
+    marginRight: 6,
+    marginTop: 4,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.iconBackground.blue,
   },

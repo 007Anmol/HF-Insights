@@ -447,7 +447,16 @@ export default function ScanResult() {
                 <View style={styles.bulletPoint}>
                   <Ionicons name="checkmark-circle" size={18} color={theme.colors.secondary} />
                 </View>
-                <MedicalTermRichText text={r} style={styles.bodyText} onExplainTerm={openTermExplanation} />
+                <MedicalTermRichText
+                  text={(() => {
+                    const s = String(r || '').trim();
+                    if (!s) return s;
+                    const cap = s.charAt(0).toUpperCase() + s.slice(1);
+                    return /[.!?।]$/.test(cap) ? cap : `${cap}.`;
+                  })()}
+                  style={styles.bodyText}
+                  onExplainTerm={openTermExplanation}
+                />
               </View>
             ))}
           </Card>

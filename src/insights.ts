@@ -1,6 +1,7 @@
 import type { AppLanguage } from './types/language';
 import { Platform } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { File as ExpoFile } from 'expo-file-system';
 import type { CanonicalInsights } from './lib/canonicalInsights';
 import { buildInsightsPayloadFromApi } from './lib/canonicalInsights';
 import {
@@ -102,7 +103,11 @@ async function _runAnalyzeWithEndpoint(
 
   const buildFormData = () => {
     const form = new FormData();
-    form.append('file', { uri, name: filename, type: mime } as any);
+    if (Platform.OS === 'web') {
+      form.append('file', { uri, name: filename, type: mime } as any);
+    } else {
+      form.append('file', new ExpoFile(uri) as any, filename);
+    }
     form.append('language', lang);
     return form;
   };
@@ -127,6 +132,7 @@ async function _runAnalyzeWithEndpoint(
     const data = await runAnalyzeRequest();
     return buildInsightsPayloadFromApi(data) as Insights;
   } catch (firstError: any) {
+    console.warn('[analyze] first attempt failed:', BACKEND_URL + endpointPath, firstError?.name, firstError?.message, firstError?.statusCode);
     const firstStatusCode = Number(firstError?.statusCode);
     if (isColdStartFailure(firstError, Number.isFinite(firstStatusCode) ? firstStatusCode : undefined)) {
       await pingBackendHealth(HEALTH_TIMEOUT_MS);
@@ -135,6 +141,7 @@ async function _runAnalyzeWithEndpoint(
         const retried = await runAnalyzeRequest();
         return buildInsightsPayloadFromApi(retried) as Insights;
       } catch (retryError: any) {
+        console.warn('[analyze] retry failed:', retryError?.name, retryError?.message, retryError?.statusCode);
         throw new Error(getFriendlyAnalysisErrorMessage(retryError, retryError?.statusCode));
       }
     }

@@ -16,7 +16,7 @@ import { LanguageSelector } from '../../src/components/LanguageSelector';
 import { AppLanguage } from '../../src/types/language';
 import { detectDefaultLanguage, loadDisplayLanguage, saveDisplayLanguage } from '../../src/lib/languageStorage';
 import { supabase } from '../../src/supabase';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/theme';
 import Constants from 'expo-constants';
@@ -142,6 +142,7 @@ export default function NewScan() {
       Toast.show({ type: 'success', text1: 'Analysis complete!', text2: 'View your health insights' });
       router.replace({ pathname: '/scan/result', params: { id: persistedId } });
     } catch (error: any) {
+      console.warn('[scan/new] analyze flow failed:', error?.name, error?.message, error);
       Toast.show({ type: 'error', text1: 'Analysis failed', text2: error.message });
     } finally {
       setIsAnalyzing(false);
