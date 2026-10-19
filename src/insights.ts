@@ -1,4 +1,6 @@
 import type { AppLanguage } from './types/language';
+import { Platform } from 'react-native';
+import * as ImageManipulator from 'expo-image-manipulator';
 import type { CanonicalInsights } from './lib/canonicalInsights';
 import { buildInsightsPayloadFromApi } from './lib/canonicalInsights';
 import {
@@ -75,7 +77,8 @@ export function getFriendlyAnalysisErrorMessage(error: any, statusCode?: number)
   if (isColdStartFailure(error, statusCode)) {
     return 'Analysis service is waking up. Please try again in a few seconds.';
   }
-  return 'Unable to analyze scan right now. Please try again shortly.';
+  const detail = statusCode ? `HTTP ${statusCode}` : String(error?.message || '');
+  return `Unable to analyze scan right now. Please try again shortly.${detail ? ` (${detail})` : ''}`;
 }
 
 let currentLanguage: AppLanguage = 'en';
@@ -139,10 +142,31 @@ async function _runAnalyzeWithEndpoint(
   }
 }
 
+const MAX_UPLOAD_DIMENSION = 1600;
+
+async function shrinkImageForUpload(uri: string): Promise<string> {
+  if (Platform.OS === 'web') return uri;
+  try {
+    const probe = await ImageManipulator.manipulateAsync(uri, []);
+    const longest = Math.max(probe.width, probe.height);
+    const actions: ImageManipulator.Action[] =
+      longest > MAX_UPLOAD_DIMENSION
+        ? [{ resize: probe.width >= probe.height ? { width: MAX_UPLOAD_DIMENSION } : { height: MAX_UPLOAD_DIMENSION } }]
+        : [];
+    const out = await ImageManipulator.manipulateAsync(uri, actions, {
+      compress: 0.8,
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
+    return out.uri;
+  } catch (e) {
+    console.warn('Image shrink failed, uploading original.', e);
+    return uri;
+  }
+}
+
 export async function generateInsightsFromImage(uri: string, language?: AppLanguage): Promise<Insights> {
-  const filename = 'scan.jpg';
-  const mime = uri?.toLowerCase()?.endsWith('.png') ? 'image/png' : 'image/jpeg';
-  return _runAnalyzeWithEndpoint('/analyze-image', uri, filename, mime, language);
+  const uploadUri = await shrinkImageForUpload(uri);
+  return _runAnalyzeWithEndpoint('/analyze-image', uploadUri, 'scan.jpg', 'image/jpeg', language);
 }
 
 export async function generateInsightsFromPdf(uri: string, language?: AppLanguage): Promise<Insights> {
